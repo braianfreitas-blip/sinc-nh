@@ -38,6 +38,7 @@ export default function PublicRSVPPage() {
         confirmedAt: new Date().toISOString(),
         companions: event.allowCompanions ? companions : 0,
         amountDue: event.isPaid ? event.ticketPrice * (1 + (event.allowCompanions ? companions : 0)) : 0,
+        invitedBy: invitedBy.trim(),
       });
       setFound({ ...found, presenceStatus: status, confirmedAt: new Date().toISOString() });
       toast.success(status === 'waitlist' ? 'Adicionado à lista de espera!' : 'Presença confirmada!');
