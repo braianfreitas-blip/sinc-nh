@@ -3,8 +3,7 @@ import { useEvent } from '@/contexts/EventContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { PRESENCE_LABELS, PRESENCE_COLORS, PAYMENT_LABELS, PAYMENT_COLORS } from '@/types/event';
-import { MapPin, Clock, CheckCircle2, AlertCircle, Users, CalendarDays } from 'lucide-react';
+import { MapPin, Clock, CheckCircle2, AlertCircle, Users, CalendarDays, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import sincLogo from '@/assets/sinc-logo.png';
 
@@ -20,6 +19,8 @@ export default function PublicRSVPPage() {
   const confirmedGuests = event.guests.filter(g => g.presenceStatus === 'confirmed' || g.presenceStatus === 'attended');
   const confirmedCount = event.guests.filter(g => g.presenceStatus !== 'cancelled').reduce((s, g) => s + 1 + g.companions, 0);
   const isFull = confirmedCount >= event.maxGuests;
+
+  const canCancel = !event.cancellationDeadline || new Date() <= new Date(event.cancellationDeadline + 'T23:59:59');
 
   const handleConfirm = () => {
     if (!firstName.trim() || !lastName.trim()) {
@@ -59,7 +60,28 @@ export default function PublicRSVPPage() {
     setSearched(true);
   };
 
+  const handleUnconfirm = () => {
+    if (!found) return;
+    if (!canCancel) {
+      toast.error(`Prazo para cancelamento encerrado (${new Date(event.cancellationDeadline + 'T00:00').toLocaleDateString('pt-BR')}).`);
+      return;
+    }
+    updateGuest(found.id, { presenceStatus: 'cancelled' });
+    setFound({ ...found, presenceStatus: 'cancelled' });
+    toast.success('Presença cancelada.');
+  };
+
   const isConfirmed = found && (found.presenceStatus === 'confirmed' || found.presenceStatus === 'attended');
+  const wasCancelled = found && found.presenceStatus === 'cancelled';
+
+  const resetForm = () => {
+    setFirstName('');
+    setLastName('');
+    setCompanions(0);
+    setInvitedBy('');
+    setFound(null);
+    setSearched(false);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -85,7 +107,16 @@ export default function PublicRSVPPage() {
       {/* Form + Lista */}
       <div className="max-w-md mx-auto -mt-8 px-4 pb-16 space-y-6">
         <div className="bg-card rounded-2xl border border-border shadow-elegant p-8">
-          {!isConfirmed ? (
+          {wasCancelled ? (
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
+                <XCircle className="w-8 h-8 text-destructive" />
+              </div>
+              <h2 className="font-display text-xl font-semibold">Presença Cancelada</h2>
+              <p className="text-muted-foreground">{found!.firstName} {found!.lastName}</p>
+              <Button variant="outline" className="w-full" onClick={resetForm}>Voltar</Button>
+            </div>
+          ) : !isConfirmed ? (
             <>
               <h2 className="font-display text-xl font-semibold text-center mb-6">Confirme sua Presença</h2>
               {isFull && (
@@ -144,18 +175,19 @@ export default function PublicRSVPPage() {
                   <p className="text-sm font-medium text-success">✓ Pagamento aprovado</p>
                 </div>
               )}
-              <Button
-                variant="outline"
-                className="w-full mt-4"
-                onClick={() => {
-                  setFirstName('');
-                  setLastName('');
-                  setCompanions(0);
-                  setInvitedBy('');
-                  setFound(null);
-                  setSearched(false);
-                }}
-              >
+
+              {canCancel && (
+                <Button variant="destructive" className="w-full" onClick={handleUnconfirm}>
+                  <XCircle className="w-4 h-4 mr-2" />Cancelar Presença
+                </Button>
+              )}
+              {!canCancel && event.cancellationDeadline && (
+                <p className="text-xs text-muted-foreground">
+                  Prazo para cancelamento encerrado em {new Date(event.cancellationDeadline + 'T00:00').toLocaleDateString('pt-BR')}.
+                </p>
+              )}
+
+              <Button variant="outline" className="w-full" onClick={resetForm}>
                 Adicionar outro convidado
               </Button>
             </div>
@@ -181,9 +213,14 @@ export default function PublicRSVPPage() {
             <ul className="space-y-2 max-h-64 overflow-y-auto">
               {confirmedGuests.map(g => (
                 <li key={g.id} className="flex items-center justify-between text-sm py-2 border-b border-border last:border-0">
-                  <span className="font-medium text-foreground">{g.firstName} {g.lastName}</span>
+                  <div>
+                    <span className="font-medium text-foreground">{g.firstName} {g.lastName}</span>
+                    {g.invitedBy && (
+                      <span className="text-xs text-muted-foreground ml-2">• por {g.invitedBy}</span>
+                    )}
+                  </div>
                   {g.companions > 0 && (
-                    <span className="text-xs text-muted-foreground">+{g.companions}</span>
+                    <span className="text-xs text-muted-foreground shrink-0">+{g.companions}</span>
                   )}
                 </li>
               ))}
