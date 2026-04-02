@@ -90,6 +90,7 @@ export default function GuestListPage() {
             <tr className="border-b border-border">
               <th className="text-left p-4 font-medium text-muted-foreground">Nome</th>
               <th className="text-left p-4 font-medium text-muted-foreground hidden md:table-cell">Telefone</th>
+              <th className="text-left p-4 font-medium text-muted-foreground hidden lg:table-cell">Convidou</th>
               <th className="text-left p-4 font-medium text-muted-foreground">Presença</th>
               <th className="text-left p-4 font-medium text-muted-foreground hidden sm:table-cell">Pagamento</th>
               <th className="text-right p-4 font-medium text-muted-foreground hidden lg:table-cell">Valor</th>
