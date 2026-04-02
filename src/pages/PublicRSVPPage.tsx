@@ -17,30 +17,26 @@ export default function PublicRSVPPage() {
   const [found, setFound] = useState<ReturnType<typeof findGuestByName> | null>(null);
   const [searched, setSearched] = useState(false);
 
+  const confirmedGuests = event.guests.filter(g => g.presenceStatus === 'confirmed' || g.presenceStatus === 'attended');
   const confirmedCount = event.guests.filter(g => g.presenceStatus !== 'cancelled').reduce((s, g) => s + 1 + g.companions, 0);
   const isFull = confirmedCount >= event.maxGuests;
 
-  const handleSearch = () => {
+  const handleConfirm = () => {
     if (!firstName.trim() || !lastName.trim()) {
       toast.error('Informe nome e sobrenome.');
       return;
     }
-    const guest = findGuestByName(firstName.trim(), lastName.trim());
-    setFound(guest || null);
-    setSearched(true);
-  };
-
-  const handleConfirm = () => {
-    if (found) {
+    const existing = findGuestByName(firstName.trim(), lastName.trim());
+    if (existing) {
       const status = isFull ? 'waitlist' : 'confirmed';
-      updateGuest(found.id, {
+      updateGuest(existing.id, {
         presenceStatus: status,
         confirmedAt: new Date().toISOString(),
         companions: event.allowCompanions ? companions : 0,
         amountDue: event.isPaid ? event.ticketPrice * (1 + (event.allowCompanions ? companions : 0)) : 0,
         invitedBy: invitedBy.trim(),
       });
-      setFound({ ...found, presenceStatus: status, confirmedAt: new Date().toISOString() });
+      setFound({ ...existing, presenceStatus: status, confirmedAt: new Date().toISOString() });
       toast.success(status === 'waitlist' ? 'Adicionado à lista de espera!' : 'Presença confirmada!');
     } else {
       const status = isFull ? 'waitlist' : 'confirmed';
@@ -86,8 +82,8 @@ export default function PublicRSVPPage() {
         </div>
       </div>
 
-      {/* Form */}
-      <div className="max-w-md mx-auto -mt-8 px-4 pb-16">
+      {/* Form + Lista */}
+      <div className="max-w-md mx-auto -mt-8 px-4 pb-16 space-y-6">
         <div className="bg-card rounded-2xl border border-border shadow-elegant p-8">
           {!isConfirmed ? (
             <>
@@ -169,6 +165,31 @@ export default function PublicRSVPPage() {
             <p className="text-xs text-muted-foreground text-center mt-3">Novo convidado — sua confirmação será registrada.</p>
           )}
         </div>
+
+        {/* Lista de Confirmados */}
+        {confirmedGuests.length > 0 && (
+          <div className="bg-card rounded-2xl border border-border shadow-elegant p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-display text-lg font-semibold flex items-center gap-2">
+                <Users className="w-5 h-5 text-primary" />
+                Confirmados
+              </h3>
+              <span className="text-sm font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">
+                {confirmedGuests.reduce((s, g) => s + 1 + g.companions, 0)} pessoa(s)
+              </span>
+            </div>
+            <ul className="space-y-2 max-h-64 overflow-y-auto">
+              {confirmedGuests.map(g => (
+                <li key={g.id} className="flex items-center justify-between text-sm py-2 border-b border-border last:border-0">
+                  <span className="font-medium text-foreground">{g.firstName} {g.lastName}</span>
+                  {g.companions > 0 && (
+                    <span className="text-xs text-muted-foreground">+{g.companions}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );
