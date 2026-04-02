@@ -108,6 +108,7 @@ export default function GuestListPage() {
                   {g.notes && <p className="text-xs text-muted-foreground truncate max-w-[200px]">{g.notes}</p>}
                 </td>
                 <td className="p-4 hidden md:table-cell text-muted-foreground">{g.phone || '—'}</td>
+                <td className="p-4 hidden lg:table-cell text-muted-foreground">{g.invitedBy || '—'}</td>
                 <td className="p-4">
                   <span className={`text-xs px-2 py-1 rounded-full font-medium ${PRESENCE_COLORS[g.presenceStatus]}`}>
                     {PRESENCE_LABELS[g.presenceStatus]}

@@ -98,6 +98,7 @@ export default function PublicRSVPPage() {
               <div className="space-y-4">
                 <div><Label>Nome *</Label><Input value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="João" /></div>
                 <div><Label>Sobrenome *</Label><Input value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Silva" /></div>
+                <div><Label>Quem te convidou?</Label><Input value={invitedBy} onChange={e => setInvitedBy(e.target.value)} placeholder="Nome de quem convidou" /></div>
                 {event.allowCompanions && (
                   <div>
                     <Label>Acompanhantes (máx: {event.maxCompanions})</Label>
