@@ -100,7 +100,7 @@ export default function GuestListPage() {
           </thead>
           <tbody>
             {filtered.length === 0 ? (
-              <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">Nenhum convidado encontrado.</td></tr>
+              <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">Nenhum convidado encontrado.</td></tr>
             ) : filtered.map(g => (
               <tr key={g.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                 <td className="p-4">
