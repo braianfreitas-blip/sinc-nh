@@ -53,6 +53,7 @@ export default function PublicRSVPPage() {
         amountPaid: 0,
         companions: event.allowCompanions ? companions : 0,
         notes: '',
+        invitedBy: invitedBy.trim(),
         checkedIn: false,
         confirmedAt: new Date().toISOString(),
       });
