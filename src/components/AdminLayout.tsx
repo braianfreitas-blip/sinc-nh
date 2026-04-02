@@ -64,10 +64,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Mobile header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 gradient-primary text-sidebar-foreground px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg gradient-gold flex items-center justify-center">
-            <CalendarDays className="w-4 h-4 text-primary" />
-          </div>
-          <span className="font-display font-semibold">EventosPro</span>
+          <img src={sincLogo} alt="SINC" className="w-8 h-8 rounded-lg object-cover" />
+          <span className="font-display font-semibold text-sidebar-primary">SINC</span>
         </div>
         <button onClick={() => setMobileOpen(!mobileOpen)}>
           {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}

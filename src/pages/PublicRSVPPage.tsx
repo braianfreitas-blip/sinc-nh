@@ -67,9 +67,7 @@ export default function PublicRSVPPage() {
       {/* Hero */}
       <div className="gradient-primary text-primary-foreground py-16 px-4">
         <div className="max-w-lg mx-auto text-center">
-          <div className="w-16 h-16 rounded-2xl gradient-gold flex items-center justify-center mx-auto mb-6">
-            <CalendarDays className="w-8 h-8 text-primary" />
-          </div>
+          <img src={sincLogo} alt="SINC" className="w-20 h-20 rounded-2xl object-cover mx-auto mb-6" />
           <h1 className="font-display text-4xl font-bold mb-4">{event.name || 'Evento'}</h1>
           {event.description && <p className="text-primary-foreground/80 mb-6">{event.description}</p>}
           <div className="flex flex-wrap justify-center gap-4 text-sm text-primary-foreground/70">
