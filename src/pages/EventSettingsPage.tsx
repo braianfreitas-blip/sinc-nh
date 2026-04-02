@@ -21,6 +21,7 @@ export default function EventSettingsPage() {
     maxGuests: event.maxGuests,
     allowCompanions: event.allowCompanions,
     maxCompanions: event.maxCompanions,
+    cancellationDeadline: event.cancellationDeadline || '',
   });
 
   const handleSave = () => {
@@ -47,6 +48,7 @@ export default function EventSettingsPage() {
         <div><Label>Local</Label><Input value={form.location} onChange={e => update('location', e.target.value)} /></div>
         <div><Label>Descrição</Label><Textarea value={form.description} onChange={e => update('description', e.target.value)} rows={3} /></div>
         <div><Label>Limite de Convidados</Label><Input type="number" value={form.maxGuests} onChange={e => update('maxGuests', Number(e.target.value))} /></div>
+        <div><Label>Data Limite para Cancelamento</Label><Input type="date" value={form.cancellationDeadline} onChange={e => update('cancellationDeadline', e.target.value)} /><p className="text-xs text-muted-foreground mt-1">Convidados podem desconfirmar até esta data</p></div>
       </div>
 
       <div className="bg-card rounded-xl border border-border p-6 shadow-card space-y-5">
