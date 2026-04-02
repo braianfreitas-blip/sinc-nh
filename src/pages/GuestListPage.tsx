@@ -32,9 +32,9 @@ export default function GuestListPage() {
   });
 
   const handleExport = () => {
-    const headers = ['Nome', 'Sobrenome', 'Telefone', 'Presença', 'Pagamento', 'Valor Devido', 'Valor Pago', 'Acompanhantes', 'Observações', 'Confirmado em'];
+    const headers = ['Nome', 'Sobrenome', 'Telefone', 'Quem Convidou', 'Presença', 'Pagamento', 'Valor Devido', 'Valor Pago', 'Acompanhantes', 'Observações', 'Confirmado em'];
     const rows = event.guests.map(g => [
-      g.firstName, g.lastName, g.phone || '', PRESENCE_LABELS[g.presenceStatus],
+      g.firstName, g.lastName, g.phone || '', g.invitedBy || '', PRESENCE_LABELS[g.presenceStatus],
       PAYMENT_LABELS[g.paymentStatus], g.amountDue, g.amountPaid, g.companions,
       g.notes, g.confirmedAt || ''
     ]);
