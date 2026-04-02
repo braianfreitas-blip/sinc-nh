@@ -1,7 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Upload, Settings, CreditCard, UserCheck, CalendarDays, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Users, Upload, Settings, CreditCard, UserCheck, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { useEvent } from '@/contexts/EventContext';
+import sincLogo from '@/assets/sinc-logo.png';
 
 const navItems = [
   { to: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
@@ -23,11 +24,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className="hidden lg:flex flex-col w-64 gradient-primary text-sidebar-foreground">
         <div className="p-6 border-b border-sidebar-border">
           <Link to="/admin" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg gradient-gold flex items-center justify-center">
-              <CalendarDays className="w-5 h-5 text-primary" />
-            </div>
+            <img src={sincLogo} alt="SINC" className="w-10 h-10 rounded-lg object-cover" />
             <div>
-              <h1 className="font-display text-lg font-semibold text-sidebar-foreground">EventosPro</h1>
+              <h1 className="font-display text-lg font-semibold text-sidebar-primary">SINC</h1>
               <p className="text-xs text-sidebar-foreground/60 truncate max-w-[140px]">{event.name || 'Sem evento'}</p>
             </div>
           </Link>
@@ -56,7 +55,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             to="/"
             className="flex items-center gap-2 px-4 py-2 text-sm text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors"
           >
-            <CalendarDays className="w-4 h-4" />
+            <Users className="w-4 h-4" />
             Página pública
           </Link>
         </div>
@@ -65,10 +64,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Mobile header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 gradient-primary text-sidebar-foreground px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg gradient-gold flex items-center justify-center">
-            <CalendarDays className="w-4 h-4 text-primary" />
-          </div>
-          <span className="font-display font-semibold">EventosPro</span>
+          <img src={sincLogo} alt="SINC" className="w-8 h-8 rounded-lg object-cover" />
+          <span className="font-display font-semibold text-sidebar-primary">SINC</span>
         </div>
         <button onClick={() => setMobileOpen(!mobileOpen)}>
           {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
