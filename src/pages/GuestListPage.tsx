@@ -254,10 +254,10 @@ function GuestFormDialog({ open, onClose, onSave, initial, isPaid, ticketPrice, 
       phone,
       companions,
       notes,
+      invitedBy: invitedBy.trim(),
       presenceStatus,
       paymentStatus,
       amountDue: isPaid ? ticketPrice * (1 + companions) : (initial?.amountDue || 0),
-      ...(initial ? {} : {}),
     });
   };
 
