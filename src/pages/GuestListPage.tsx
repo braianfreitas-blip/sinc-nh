@@ -239,6 +239,7 @@ function GuestFormDialog({ open, onClose, onSave, initial, isPaid, ticketPrice, 
   const [phone, setPhone] = useState(initial?.phone || '');
   const [companions, setCompanions] = useState(initial?.companions || 0);
   const [notes, setNotes] = useState(initial?.notes || '');
+  const [invitedBy, setInvitedBy] = useState(initial?.invitedBy || '');
   const [presenceStatus, setPresenceStatus] = useState(initial?.presenceStatus || 'pending');
   const [paymentStatus, setPaymentStatus] = useState(initial?.paymentStatus || (isPaid ? 'pending' : 'not_applicable'));
 
