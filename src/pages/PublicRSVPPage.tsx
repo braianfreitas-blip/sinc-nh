@@ -4,8 +4,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { PRESENCE_LABELS, PRESENCE_COLORS, PAYMENT_LABELS, PAYMENT_COLORS } from '@/types/event';
-import { CalendarDays, MapPin, Clock, CheckCircle2, AlertCircle, Users } from 'lucide-react';
+import { MapPin, Clock, CheckCircle2, AlertCircle, Users, CalendarDays } from 'lucide-react';
 import { toast } from 'sonner';
+import sincLogo from '@/assets/sinc-logo.png';
 
 export default function PublicRSVPPage() {
   const { event, findGuestByName, addGuest, updateGuest } = useEvent();
