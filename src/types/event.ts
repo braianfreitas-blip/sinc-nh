@@ -45,6 +45,7 @@ export interface EventData {
   maxGuests: number;
   allowCompanions: boolean;
   maxCompanions: number;
+  cancellationDeadline?: string;
   guests: Guest[];
   payments: PaymentRecord[];
   createdAt: string;
