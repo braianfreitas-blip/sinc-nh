@@ -55,7 +55,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             to="/"
             className="flex items-center gap-2 px-4 py-2 text-sm text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors"
           >
-            <CalendarDays className="w-4 h-4" />
+            <Users className="w-4 h-4" />
             Página pública
           </Link>
         </div>
