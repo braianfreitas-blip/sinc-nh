@@ -1,0 +1,112 @@
+import { Link, useLocation } from 'react-router-dom';
+import { LayoutDashboard, Users, Upload, Settings, CreditCard, UserCheck, CalendarDays, Menu, X } from 'lucide-react';
+import { useState } from 'react';
+import { useEvent } from '@/contexts/EventContext';
+
+const navItems = [
+  { to: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/admin/guests', icon: Users, label: 'Convidados' },
+  { to: '/admin/import', icon: Upload, label: 'Importar' },
+  { to: '/admin/financial', icon: CreditCard, label: 'Financeiro' },
+  { to: '/admin/checkin', icon: UserCheck, label: 'Check-in' },
+  { to: '/admin/settings', icon: Settings, label: 'Configurações' },
+];
+
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const { event } = useEvent();
+
+  return (
+    <div className="min-h-screen flex">
+      {/* Sidebar desktop */}
+      <aside className="hidden lg:flex flex-col w-64 gradient-primary text-sidebar-foreground">
+        <div className="p-6 border-b border-sidebar-border">
+          <Link to="/admin" className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg gradient-gold flex items-center justify-center">
+              <CalendarDays className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h1 className="font-display text-lg font-semibold text-sidebar-foreground">EventosPro</h1>
+              <p className="text-xs text-sidebar-foreground/60 truncate max-w-[140px]">{event.name || 'Sem evento'}</p>
+            </div>
+          </Link>
+        </div>
+        <nav className="flex-1 p-4 space-y-1">
+          {navItems.map(item => {
+            const active = location.pathname === item.to;
+            return (
+              <Link
+                key={item.to}
+                to={item.to}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                  active
+                    ? 'bg-sidebar-accent text-sidebar-primary'
+                    : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
+                }`}
+              >
+                <item.icon className="w-5 h-5" />
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+        <div className="p-4 border-t border-sidebar-border">
+          <Link
+            to="/"
+            className="flex items-center gap-2 px-4 py-2 text-sm text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors"
+          >
+            <CalendarDays className="w-4 h-4" />
+            Página pública
+          </Link>
+        </div>
+      </aside>
+
+      {/* Mobile header */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 gradient-primary text-sidebar-foreground px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg gradient-gold flex items-center justify-center">
+            <CalendarDays className="w-4 h-4 text-primary" />
+          </div>
+          <span className="font-display font-semibold">EventosPro</span>
+        </div>
+        <button onClick={() => setMobileOpen(!mobileOpen)}>
+          {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        </button>
+      </div>
+
+      {/* Mobile nav overlay */}
+      {mobileOpen && (
+        <div className="lg:hidden fixed inset-0 z-40 bg-foreground/50" onClick={() => setMobileOpen(false)}>
+          <div className="w-64 h-full gradient-primary p-4 pt-20 space-y-1" onClick={e => e.stopPropagation()}>
+            {navItems.map(item => {
+              const active = location.pathname === item.to;
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  onClick={() => setMobileOpen(false)}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                    active
+                      ? 'bg-sidebar-accent text-sidebar-primary'
+                      : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50'
+                  }`}
+                >
+                  <item.icon className="w-5 h-5" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Main content */}
+      <main className="flex-1 lg:overflow-auto">
+        <div className="pt-16 lg:pt-0 p-4 lg:p-8 max-w-7xl mx-auto">
+          {children}
+        </div>
+      </main>
+    </div>
+  );
+}
