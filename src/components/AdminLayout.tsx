@@ -1,7 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Upload, Settings, CreditCard, UserCheck, CalendarDays, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Users, Upload, Settings, CreditCard, UserCheck, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { useEvent } from '@/contexts/EventContext';
+import sincLogo from '@/assets/sinc-logo.png';
 
 const navItems = [
   { to: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
