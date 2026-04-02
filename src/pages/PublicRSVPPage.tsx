@@ -13,6 +13,7 @@ export default function PublicRSVPPage() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [companions, setCompanions] = useState(0);
+  const [invitedBy, setInvitedBy] = useState('');
   const [found, setFound] = useState<ReturnType<typeof findGuestByName> | null>(null);
   const [searched, setSearched] = useState(false);
 
