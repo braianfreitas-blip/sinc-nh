@@ -148,6 +148,20 @@ export default function PublicRSVPPage() {
                   <p className="text-sm font-medium text-success">✓ Pagamento aprovado</p>
                 </div>
               )}
+              <Button
+                variant="outline"
+                className="w-full mt-4"
+                onClick={() => {
+                  setFirstName('');
+                  setLastName('');
+                  setCompanions(0);
+                  setInvitedBy('');
+                  setFound(null);
+                  setSearched(false);
+                }}
+              >
+                Adicionar outro convidado
+              </Button>
             </div>
           )}
 
