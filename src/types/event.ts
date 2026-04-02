@@ -18,6 +18,7 @@ export interface Guest {
   paidAt?: string;
   paymentMethod?: PaymentMethod;
   checkedIn: boolean;
+  invitedBy?: string;
   checkedInAt?: string;
   createdAt: string;
 }

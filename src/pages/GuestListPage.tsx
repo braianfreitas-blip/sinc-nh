@@ -32,9 +32,9 @@ export default function GuestListPage() {
   });
 
   const handleExport = () => {
-    const headers = ['Nome', 'Sobrenome', 'Telefone', 'Presença', 'Pagamento', 'Valor Devido', 'Valor Pago', 'Acompanhantes', 'Observações', 'Confirmado em'];
+    const headers = ['Nome', 'Sobrenome', 'Telefone', 'Quem Convidou', 'Presença', 'Pagamento', 'Valor Devido', 'Valor Pago', 'Acompanhantes', 'Observações', 'Confirmado em'];
     const rows = event.guests.map(g => [
-      g.firstName, g.lastName, g.phone || '', PRESENCE_LABELS[g.presenceStatus],
+      g.firstName, g.lastName, g.phone || '', g.invitedBy || '', PRESENCE_LABELS[g.presenceStatus],
       PAYMENT_LABELS[g.paymentStatus], g.amountDue, g.amountPaid, g.companions,
       g.notes, g.confirmedAt || ''
     ]);
@@ -90,6 +90,7 @@ export default function GuestListPage() {
             <tr className="border-b border-border">
               <th className="text-left p-4 font-medium text-muted-foreground">Nome</th>
               <th className="text-left p-4 font-medium text-muted-foreground hidden md:table-cell">Telefone</th>
+              <th className="text-left p-4 font-medium text-muted-foreground hidden lg:table-cell">Convidou</th>
               <th className="text-left p-4 font-medium text-muted-foreground">Presença</th>
               <th className="text-left p-4 font-medium text-muted-foreground hidden sm:table-cell">Pagamento</th>
               <th className="text-right p-4 font-medium text-muted-foreground hidden lg:table-cell">Valor</th>
@@ -99,7 +100,7 @@ export default function GuestListPage() {
           </thead>
           <tbody>
             {filtered.length === 0 ? (
-              <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">Nenhum convidado encontrado.</td></tr>
+              <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">Nenhum convidado encontrado.</td></tr>
             ) : filtered.map(g => (
               <tr key={g.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                 <td className="p-4">
@@ -107,6 +108,7 @@ export default function GuestListPage() {
                   {g.notes && <p className="text-xs text-muted-foreground truncate max-w-[200px]">{g.notes}</p>}
                 </td>
                 <td className="p-4 hidden md:table-cell text-muted-foreground">{g.phone || '—'}</td>
+                <td className="p-4 hidden lg:table-cell text-muted-foreground">{g.invitedBy || '—'}</td>
                 <td className="p-4">
                   <span className={`text-xs px-2 py-1 rounded-full font-medium ${PRESENCE_COLORS[g.presenceStatus]}`}>
                     {PRESENCE_LABELS[g.presenceStatus]}
@@ -239,6 +241,7 @@ function GuestFormDialog({ open, onClose, onSave, initial, isPaid, ticketPrice, 
   const [phone, setPhone] = useState(initial?.phone || '');
   const [companions, setCompanions] = useState(initial?.companions || 0);
   const [notes, setNotes] = useState(initial?.notes || '');
+  const [invitedBy, setInvitedBy] = useState(initial?.invitedBy || '');
   const [presenceStatus, setPresenceStatus] = useState(initial?.presenceStatus || 'pending');
   const [paymentStatus, setPaymentStatus] = useState(initial?.paymentStatus || (isPaid ? 'pending' : 'not_applicable'));
 
@@ -253,10 +256,10 @@ function GuestFormDialog({ open, onClose, onSave, initial, isPaid, ticketPrice, 
       phone,
       companions,
       notes,
+      invitedBy: invitedBy.trim(),
       presenceStatus,
       paymentStatus,
       amountDue: isPaid ? ticketPrice * (1 + companions) : (initial?.amountDue || 0),
-      ...(initial ? {} : {}),
     });
   };
 
@@ -272,6 +275,7 @@ function GuestFormDialog({ open, onClose, onSave, initial, isPaid, ticketPrice, 
             <div><Label>Sobrenome *</Label><Input value={lastName} onChange={e => setLastName(e.target.value)} /></div>
           </div>
           <div><Label>Telefone</Label><Input value={phone} onChange={e => setPhone(e.target.value)} /></div>
+          <div><Label>Quem Convidou</Label><Input value={invitedBy} onChange={e => setInvitedBy(e.target.value)} placeholder="Nome de quem convidou" /></div>
           {initial && (
             <div className="grid grid-cols-2 gap-3">
               <div>

@@ -13,6 +13,7 @@ export default function PublicRSVPPage() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [companions, setCompanions] = useState(0);
+  const [invitedBy, setInvitedBy] = useState('');
   const [found, setFound] = useState<ReturnType<typeof findGuestByName> | null>(null);
   const [searched, setSearched] = useState(false);
 
@@ -37,6 +38,7 @@ export default function PublicRSVPPage() {
         confirmedAt: new Date().toISOString(),
         companions: event.allowCompanions ? companions : 0,
         amountDue: event.isPaid ? event.ticketPrice * (1 + (event.allowCompanions ? companions : 0)) : 0,
+        invitedBy: invitedBy.trim(),
       });
       setFound({ ...found, presenceStatus: status, confirmedAt: new Date().toISOString() });
       toast.success(status === 'waitlist' ? 'Adicionado à lista de espera!' : 'Presença confirmada!');
@@ -51,6 +53,7 @@ export default function PublicRSVPPage() {
         amountPaid: 0,
         companions: event.allowCompanions ? companions : 0,
         notes: '',
+        invitedBy: invitedBy.trim(),
         checkedIn: false,
         confirmedAt: new Date().toISOString(),
       });
@@ -98,6 +101,7 @@ export default function PublicRSVPPage() {
               <div className="space-y-4">
                 <div><Label>Nome *</Label><Input value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="João" /></div>
                 <div><Label>Sobrenome *</Label><Input value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Silva" /></div>
+                <div><Label>Quem te convidou?</Label><Input value={invitedBy} onChange={e => setInvitedBy(e.target.value)} placeholder="Nome de quem convidou" /></div>
                 {event.allowCompanions && (
                   <div>
                     <Label>Acompanhantes (máx: {event.maxCompanions})</Label>
