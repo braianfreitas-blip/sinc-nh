@@ -273,6 +273,7 @@ function GuestFormDialog({ open, onClose, onSave, initial, isPaid, ticketPrice, 
             <div><Label>Sobrenome *</Label><Input value={lastName} onChange={e => setLastName(e.target.value)} /></div>
           </div>
           <div><Label>Telefone</Label><Input value={phone} onChange={e => setPhone(e.target.value)} /></div>
+          <div><Label>Quem Convidou</Label><Input value={invitedBy} onChange={e => setInvitedBy(e.target.value)} placeholder="Nome de quem convidou" /></div>
           {initial && (
             <div className="grid grid-cols-2 gap-3">
               <div>
