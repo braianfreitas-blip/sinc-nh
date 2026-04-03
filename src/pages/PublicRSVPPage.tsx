@@ -89,6 +89,34 @@ export default function PublicRSVPPage() {
     setSearched(false);
   };
 
+  const handleLookup = () => {
+    if (!lookupFirst.trim() || !lookupLast.trim()) {
+      toast.error('Informe nome e sobrenome.');
+      return;
+    }
+    const guest = findGuestByName(lookupFirst.trim(), lookupLast.trim());
+    setLookupResult(guest || null);
+    setLookupSearched(true);
+  };
+
+  const handleLookupCancel = () => {
+    if (!lookupResult) return;
+    if (!canCancel) {
+      toast.error(`Prazo para cancelamento encerrado (${new Date(event.cancellationDeadline + 'T00:00').toLocaleDateString('pt-BR')}).`);
+      return;
+    }
+    updateGuest(lookupResult.id, { presenceStatus: 'cancelled' });
+    setLookupResult({ ...lookupResult, presenceStatus: 'cancelled' });
+    toast.success('Presença cancelada.');
+  };
+
+  const resetLookup = () => {
+    setLookupFirst('');
+    setLookupLast('');
+    setLookupResult(null);
+    setLookupSearched(false);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Hero */}
