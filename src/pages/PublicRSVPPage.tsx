@@ -3,7 +3,8 @@ import { useEvent } from '@/contexts/EventContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { MapPin, Clock, CheckCircle2, AlertCircle, Users, CalendarDays, XCircle, Search } from 'lucide-react';
+import { MapPin, Clock, CheckCircle2, AlertCircle, Users, CalendarDays, XCircle, Search, CreditCard } from 'lucide-react';
+import { PAYMENT_LABELS } from '@/types/event';
 import { toast } from 'sonner';
 import sincLogo from '@/assets/sinc-logo.png';
 
@@ -285,6 +286,25 @@ export default function PublicRSVPPage() {
                     <p className="text-sm text-muted-foreground flex items-center justify-center gap-1">
                       <Users className="w-4 h-4" />+{lookupResult.companions} acompanhante(s)
                     </p>
+                  )}
+                  {event.isPaid && (
+                    <div className={`rounded-lg p-4 mt-2 ${lookupResult.paymentStatus === 'paid' ? 'bg-success/10' : 'bg-warning/10'}`}>
+                      <p className="text-sm font-medium flex items-center justify-center gap-1">
+                        <CreditCard className="w-4 h-4" />
+                        Pagamento: {PAYMENT_LABELS[lookupResult.paymentStatus]}
+                      </p>
+                      {(lookupResult.paymentStatus === 'pending' || lookupResult.paymentStatus === 'partial') && (
+                        <>
+                          <p className="text-2xl font-bold mt-1">
+                            {(lookupResult.amountDue - lookupResult.amountPaid).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">A confirmação do pagamento será feita pelo administrador.</p>
+                        </>
+                      )}
+                      {lookupResult.paymentStatus === 'paid' && (
+                        <p className="text-sm text-success mt-1">✓ Pagamento confirmado</p>
+                      )}
+                    </div>
                   )}
                   {canCancel && (
                     <Button variant="destructive" className="w-full" onClick={handleLookupCancel}>
