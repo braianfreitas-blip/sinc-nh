@@ -15,8 +15,14 @@ export default function PublicRSVPPage() {
   const [invitedBy, setInvitedBy] = useState('');
   const [found, setFound] = useState<ReturnType<typeof findGuestByName> | null>(null);
   const [searched, setSearched] = useState(false);
+  const [mode, setMode] = useState<'confirm' | 'manage'>('confirm');
+  const [lookupFirst, setLookupFirst] = useState('');
+  const [lookupLast, setLookupLast] = useState('');
+  const [lookupResult, setLookupResult] = useState<ReturnType<typeof findGuestByName> | null>(null);
+  const [lookupSearched, setLookupSearched] = useState(false);
 
   const confirmedGuests = event.guests.filter(g => g.presenceStatus === 'confirmed' || g.presenceStatus === 'attended');
+  const cancelledGuests = event.guests.filter(g => g.presenceStatus === 'cancelled');
   const confirmedCount = event.guests.filter(g => g.presenceStatus !== 'cancelled').reduce((s, g) => s + 1 + g.companions, 0);
   const isFull = confirmedCount >= event.maxGuests;
 
