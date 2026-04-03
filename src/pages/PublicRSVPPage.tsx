@@ -3,7 +3,8 @@ import { useEvent } from '@/contexts/EventContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { MapPin, Clock, CheckCircle2, AlertCircle, Users, CalendarDays, XCircle, Search } from 'lucide-react';
+import { MapPin, Clock, CheckCircle2, AlertCircle, Users, CalendarDays, XCircle, Search, CreditCard } from 'lucide-react';
+import { PAYMENT_LABELS } from '@/types/event';
 import { toast } from 'sonner';
 import sincLogo from '@/assets/sinc-logo.png';
 
