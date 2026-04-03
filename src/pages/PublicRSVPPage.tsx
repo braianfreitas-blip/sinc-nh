@@ -3,7 +3,7 @@ import { useEvent } from '@/contexts/EventContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { MapPin, Clock, CheckCircle2, AlertCircle, Users, CalendarDays, XCircle } from 'lucide-react';
+import { MapPin, Clock, CheckCircle2, AlertCircle, Users, CalendarDays, XCircle, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import sincLogo from '@/assets/sinc-logo.png';
 
@@ -15,8 +15,14 @@ export default function PublicRSVPPage() {
   const [invitedBy, setInvitedBy] = useState('');
   const [found, setFound] = useState<ReturnType<typeof findGuestByName> | null>(null);
   const [searched, setSearched] = useState(false);
+  const [mode, setMode] = useState<'confirm' | 'manage'>('confirm');
+  const [lookupFirst, setLookupFirst] = useState('');
+  const [lookupLast, setLookupLast] = useState('');
+  const [lookupResult, setLookupResult] = useState<ReturnType<typeof findGuestByName> | null>(null);
+  const [lookupSearched, setLookupSearched] = useState(false);
 
   const confirmedGuests = event.guests.filter(g => g.presenceStatus === 'confirmed' || g.presenceStatus === 'attended');
+  const cancelledGuests = event.guests.filter(g => g.presenceStatus === 'cancelled');
   const confirmedCount = event.guests.filter(g => g.presenceStatus !== 'cancelled').reduce((s, g) => s + 1 + g.companions, 0);
   const isFull = confirmedCount >= event.maxGuests;
 
@@ -83,6 +89,34 @@ export default function PublicRSVPPage() {
     setSearched(false);
   };
 
+  const handleLookup = () => {
+    if (!lookupFirst.trim() || !lookupLast.trim()) {
+      toast.error('Informe nome e sobrenome.');
+      return;
+    }
+    const guest = findGuestByName(lookupFirst.trim(), lookupLast.trim());
+    setLookupResult(guest || null);
+    setLookupSearched(true);
+  };
+
+  const handleLookupCancel = () => {
+    if (!lookupResult) return;
+    if (!canCancel) {
+      toast.error(`Prazo para cancelamento encerrado (${new Date(event.cancellationDeadline + 'T00:00').toLocaleDateString('pt-BR')}).`);
+      return;
+    }
+    updateGuest(lookupResult.id, { presenceStatus: 'cancelled' });
+    setLookupResult({ ...lookupResult, presenceStatus: 'cancelled' });
+    toast.success('Presença cancelada.');
+  };
+
+  const resetLookup = () => {
+    setLookupFirst('');
+    setLookupLast('');
+    setLookupResult(null);
+    setLookupSearched(false);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Hero */}
@@ -106,95 +140,172 @@ export default function PublicRSVPPage() {
 
       {/* Form + Lista */}
       <div className="max-w-md mx-auto -mt-8 px-4 pb-16 space-y-6">
+        {/* Toggle confirm / manage */}
+        <div className="flex gap-2">
+          <Button
+            variant={mode === 'confirm' ? 'default' : 'outline'}
+            className="flex-1"
+            onClick={() => { setMode('confirm'); resetLookup(); }}
+          >
+            Confirmar Presença
+          </Button>
+          <Button
+            variant={mode === 'manage' ? 'default' : 'outline'}
+            className="flex-1"
+            onClick={() => { setMode('manage'); resetForm(); }}
+          >
+            <Search className="w-4 h-4 mr-2" />Gerenciar
+          </Button>
+        </div>
+
         <div className="bg-card rounded-2xl border border-border shadow-elegant p-8">
-          {wasCancelled ? (
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
-                <XCircle className="w-8 h-8 text-destructive" />
-              </div>
-              <h2 className="font-display text-xl font-semibold">Presença Cancelada</h2>
-              <p className="text-muted-foreground">{found!.firstName} {found!.lastName}</p>
-              <Button variant="outline" className="w-full" onClick={resetForm}>Voltar</Button>
-            </div>
-          ) : !isConfirmed ? (
+          {mode === 'confirm' ? (
             <>
-              <h2 className="font-display text-xl font-semibold text-center mb-6">Confirme sua Presença</h2>
-              {isFull && (
-                <div className="bg-warning/10 text-warning rounded-lg p-3 mb-4 flex items-center gap-2 text-sm">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  Evento lotado. Novas confirmações entram na lista de espera.
+              {wasCancelled ? (
+                <div className="text-center space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
+                    <XCircle className="w-8 h-8 text-destructive" />
+                  </div>
+                  <h2 className="font-display text-xl font-semibold">Presença Cancelada</h2>
+                  <p className="text-muted-foreground">{found!.firstName} {found!.lastName}</p>
+                  <Button variant="outline" className="w-full" onClick={resetForm}>Voltar</Button>
                 </div>
-              )}
-              <div className="space-y-4">
-                <div><Label>Nome *</Label><Input value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="João" /></div>
-                <div><Label>Sobrenome *</Label><Input value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Silva" /></div>
-                <div><Label>Quem te convidou?</Label><Input value={invitedBy} onChange={e => setInvitedBy(e.target.value)} placeholder="Nome de quem convidou" /></div>
-                {event.allowCompanions && (
-                  <div>
-                    <Label>Acompanhantes (máx: {event.maxCompanions})</Label>
-                    <Input type="number" min={0} max={event.maxCompanions} value={companions} onChange={e => setCompanions(Math.min(Number(e.target.value), event.maxCompanions))} />
+              ) : !isConfirmed ? (
+                <>
+                  <h2 className="font-display text-xl font-semibold text-center mb-6">Confirme sua Presença</h2>
+                  {isFull && (
+                    <div className="bg-warning/10 text-warning rounded-lg p-3 mb-4 flex items-center gap-2 text-sm">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      Evento lotado. Novas confirmações entram na lista de espera.
+                    </div>
+                  )}
+                  <div className="space-y-4">
+                    <div><Label>Nome *</Label><Input value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="João" /></div>
+                    <div><Label>Sobrenome *</Label><Input value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Silva" /></div>
+                    <div><Label>Quem te convidou?</Label><Input value={invitedBy} onChange={e => setInvitedBy(e.target.value)} placeholder="Nome de quem convidou" /></div>
+                    {event.allowCompanions && (
+                      <div>
+                        <Label>Acompanhantes (máx: {event.maxCompanions})</Label>
+                        <Input type="number" min={0} max={event.maxCompanions} value={companions} onChange={e => setCompanions(Math.min(Number(e.target.value), event.maxCompanions))} />
+                      </div>
+                    )}
+                    {event.isPaid && (
+                      <div className="bg-gold-light rounded-lg p-4 text-center">
+                        <p className="text-sm text-muted-foreground">Valor do ingresso</p>
+                        <p className="text-2xl font-bold text-foreground">
+                          {(event.ticketPrice * (1 + companions)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        </p>
+                        {companions > 0 && <p className="text-xs text-muted-foreground">({1 + companions} pessoas)</p>}
+                      </div>
+                    )}
+                    <Button onClick={handleConfirm} className="w-full h-12 text-base">
+                      {isFull ? 'Entrar na Lista de Espera' : 'Confirmar Presença'}
+                    </Button>
                   </div>
-                )}
-                {event.isPaid && (
-                  <div className="bg-gold-light rounded-lg p-4 text-center">
-                    <p className="text-sm text-muted-foreground">Valor do ingresso</p>
-                    <p className="text-2xl font-bold text-foreground">
-                      {(event.ticketPrice * (1 + companions)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                </>
+              ) : (
+                <div className="text-center space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center mx-auto">
+                    <CheckCircle2 className="w-8 h-8 text-success" />
+                  </div>
+                  <h2 className="font-display text-xl font-semibold">Presença Confirmada!</h2>
+                  <p className="text-muted-foreground">{found!.firstName} {found!.lastName}</p>
+                  {found!.companions > 0 && (
+                    <p className="text-sm text-muted-foreground flex items-center justify-center gap-1">
+                      <Users className="w-4 h-4" />+{found!.companions} acompanhante(s)
                     </p>
-                    {companions > 0 && <p className="text-xs text-muted-foreground">({1 + companions} pessoas)</p>}
-                  </div>
-                )}
-                <Button onClick={handleConfirm} className="w-full h-12 text-base">
-                  {isFull ? 'Entrar na Lista de Espera' : 'Confirmar Presença'}
-                </Button>
-              </div>
-            </>
-          ) : (
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center mx-auto">
-                <CheckCircle2 className="w-8 h-8 text-success" />
-              </div>
-              <h2 className="font-display text-xl font-semibold">Presença Confirmada!</h2>
-              <p className="text-muted-foreground">{found!.firstName} {found!.lastName}</p>
-              {found!.companions > 0 && (
-                <p className="text-sm text-muted-foreground flex items-center justify-center gap-1">
-                  <Users className="w-4 h-4" />+{found!.companions} acompanhante(s)
-                </p>
-              )}
-              {event.isPaid && found!.paymentStatus === 'pending' && (
-                <div className="bg-warning/10 rounded-lg p-4 mt-4">
-                  <p className="text-sm font-medium text-warning">Pagamento pendente</p>
-                  <p className="text-2xl font-bold mt-1">{(found!.amountDue - found!.amountPaid).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
-                  <Button className="mt-3 w-full" onClick={() => toast.info('Integração com Stripe será habilitada em breve.')}>
-                    Pagar Agora
+                  )}
+                  {event.isPaid && found!.paymentStatus === 'pending' && (
+                    <div className="bg-warning/10 rounded-lg p-4 mt-4">
+                      <p className="text-sm font-medium text-warning">Pagamento pendente</p>
+                      <p className="text-2xl font-bold mt-1">{(found!.amountDue - found!.amountPaid).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                      <Button className="mt-3 w-full" onClick={() => toast.info('Integração com Stripe será habilitada em breve.')}>
+                        Pagar Agora
+                      </Button>
+                    </div>
+                  )}
+                  {event.isPaid && found!.paymentStatus === 'paid' && (
+                    <div className="bg-success/10 rounded-lg p-4 mt-4">
+                      <p className="text-sm font-medium text-success">✓ Pagamento aprovado</p>
+                    </div>
+                  )}
+                  {canCancel && (
+                    <Button variant="destructive" className="w-full" onClick={handleUnconfirm}>
+                      <XCircle className="w-4 h-4 mr-2" />Cancelar Presença
+                    </Button>
+                  )}
+                  {!canCancel && event.cancellationDeadline && (
+                    <p className="text-xs text-muted-foreground">
+                      Prazo para cancelamento encerrado em {new Date(event.cancellationDeadline + 'T00:00').toLocaleDateString('pt-BR')}.
+                    </p>
+                  )}
+                  <Button variant="outline" className="w-full" onClick={resetForm}>
+                    Adicionar outro convidado
                   </Button>
                 </div>
               )}
-              {event.isPaid && found!.paymentStatus === 'paid' && (
-                <div className="bg-success/10 rounded-lg p-4 mt-4">
-                  <p className="text-sm font-medium text-success">✓ Pagamento aprovado</p>
+              {searched && !found && !isConfirmed && (
+                <p className="text-xs text-muted-foreground text-center mt-3">Novo convidado — sua confirmação será registrada.</p>
+              )}
+            </>
+          ) : (
+            /* Manage / Lookup mode */
+            <>
+              {!lookupSearched || !lookupResult ? (
+                <>
+                  <h2 className="font-display text-xl font-semibold text-center mb-6">Buscar minha Confirmação</h2>
+                  <div className="space-y-4">
+                    <div><Label>Nome *</Label><Input value={lookupFirst} onChange={e => setLookupFirst(e.target.value)} placeholder="João" /></div>
+                    <div><Label>Sobrenome *</Label><Input value={lookupLast} onChange={e => setLookupLast(e.target.value)} placeholder="Silva" /></div>
+                    <Button onClick={handleLookup} className="w-full h-12 text-base">
+                      <Search className="w-4 h-4 mr-2" />Buscar
+                    </Button>
+                  </div>
+                  {lookupSearched && !lookupResult && (
+                    <p className="text-sm text-muted-foreground text-center mt-4">Nenhuma confirmação encontrada com esse nome.</p>
+                  )}
+                </>
+              ) : lookupResult.presenceStatus === 'cancelled' ? (
+                <div className="text-center space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
+                    <XCircle className="w-8 h-8 text-destructive" />
+                  </div>
+                  <h2 className="font-display text-xl font-semibold">Presença Cancelada</h2>
+                  <p className="text-muted-foreground">{lookupResult.firstName} {lookupResult.lastName}</p>
+                  <Button variant="outline" className="w-full" onClick={resetLookup}>Voltar</Button>
+                </div>
+              ) : (lookupResult.presenceStatus === 'confirmed' || lookupResult.presenceStatus === 'attended') ? (
+                <div className="text-center space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center mx-auto">
+                    <CheckCircle2 className="w-8 h-8 text-success" />
+                  </div>
+                  <h2 className="font-display text-xl font-semibold">Presença Confirmada</h2>
+                  <p className="text-muted-foreground">{lookupResult.firstName} {lookupResult.lastName}</p>
+                  {lookupResult.companions > 0 && (
+                    <p className="text-sm text-muted-foreground flex items-center justify-center gap-1">
+                      <Users className="w-4 h-4" />+{lookupResult.companions} acompanhante(s)
+                    </p>
+                  )}
+                  {canCancel && (
+                    <Button variant="destructive" className="w-full" onClick={handleLookupCancel}>
+                      <XCircle className="w-4 h-4 mr-2" />Cancelar Presença
+                    </Button>
+                  )}
+                  {!canCancel && event.cancellationDeadline && (
+                    <p className="text-xs text-muted-foreground">
+                      Prazo para cancelamento encerrado em {new Date(event.cancellationDeadline + 'T00:00').toLocaleDateString('pt-BR')}.
+                    </p>
+                  )}
+                  <Button variant="outline" className="w-full" onClick={resetLookup}>Voltar</Button>
+                </div>
+              ) : (
+                <div className="text-center space-y-4">
+                  <h2 className="font-display text-xl font-semibold">Status: {lookupResult.presenceStatus}</h2>
+                  <p className="text-muted-foreground">{lookupResult.firstName} {lookupResult.lastName}</p>
+                  <Button variant="outline" className="w-full" onClick={resetLookup}>Voltar</Button>
                 </div>
               )}
-
-              {canCancel && (
-                <Button variant="destructive" className="w-full" onClick={handleUnconfirm}>
-                  <XCircle className="w-4 h-4 mr-2" />Cancelar Presença
-                </Button>
-              )}
-              {!canCancel && event.cancellationDeadline && (
-                <p className="text-xs text-muted-foreground">
-                  Prazo para cancelamento encerrado em {new Date(event.cancellationDeadline + 'T00:00').toLocaleDateString('pt-BR')}.
-                </p>
-              )}
-
-              <Button variant="outline" className="w-full" onClick={resetForm}>
-                Adicionar outro convidado
-              </Button>
-            </div>
-          )}
-
-          {searched && !found && !isConfirmed && (
-            <p className="text-xs text-muted-foreground text-center mt-3">Novo convidado — sua confirmação será registrada.</p>
+            </>
           )}
         </div>
 
@@ -222,6 +333,33 @@ export default function PublicRSVPPage() {
                   {g.companions > 0 && (
                     <span className="text-xs text-muted-foreground shrink-0">+{g.companions}</span>
                   )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Lista de Desconfirmados */}
+        {cancelledGuests.length > 0 && (
+          <div className="bg-card rounded-2xl border border-border shadow-elegant p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-display text-lg font-semibold flex items-center gap-2">
+                <XCircle className="w-5 h-5 text-destructive" />
+                Desconfirmados
+              </h3>
+              <span className="text-sm font-medium text-destructive bg-destructive/10 px-3 py-1 rounded-full">
+                {cancelledGuests.length} pessoa(s)
+              </span>
+            </div>
+            <ul className="space-y-2 max-h-48 overflow-y-auto">
+              {cancelledGuests.map(g => (
+                <li key={g.id} className="flex items-center justify-between text-sm py-2 border-b border-border last:border-0">
+                  <div>
+                    <span className="font-medium text-foreground">{g.firstName} {g.lastName}</span>
+                    {g.invitedBy && (
+                      <span className="text-xs text-muted-foreground ml-2">• por {g.invitedBy}</span>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>
