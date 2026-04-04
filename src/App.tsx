@@ -37,6 +37,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<PublicRSVPPage />} />
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/admin" element={<AdminRoute><DashboardPage /></AdminRoute>} />
               <Route path="/admin/guests" element={<AdminRoute><GuestListPage /></AdminRoute>} />
               <Route path="/admin/import" element={<AdminRoute><WhatsAppImportPage /></AdminRoute>} />
