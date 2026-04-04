@@ -58,7 +58,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             );
           })}
         </nav>
-        <div className="p-4 border-t border-sidebar-border">
+        <div className="p-4 border-t border-sidebar-border space-y-1">
           <Link
             to="/"
             className="flex items-center gap-2 px-4 py-2 text-sm text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors"
@@ -66,6 +66,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Users className="w-4 h-4" />
             Página pública
           </Link>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 px-4 py-2 text-sm text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors w-full"
+          >
+            <LogOut className="w-4 h-4" />
+            Sair
+          </button>
+          {user && (
+            <p className="px-4 text-xs text-sidebar-foreground/40 truncate">{user.email}</p>
+          )}
         </div>
       </aside>
 
