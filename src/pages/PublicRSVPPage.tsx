@@ -387,6 +387,12 @@ export default function PublicRSVPPage() {
           </div>
         )}
       </div>
+      {/* Footer */}
+      <div className="py-6 text-center">
+        <Link to="/login" className="text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors">
+          Administração
+        </Link>
+      </div>
     </div>
   );
 }
