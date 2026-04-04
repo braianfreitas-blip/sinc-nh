@@ -140,6 +140,13 @@ export default function LoginPage() {
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Entrando..." : "Entrar"}
             </Button>
+            <button
+              type="button"
+              onClick={() => setForgotMode(true)}
+              className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Esqueci minha senha
+            </button>
           </form>
         </CardContent>
       </Card>
