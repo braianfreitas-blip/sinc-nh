@@ -1,7 +1,8 @@
-import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Upload, Settings, CreditCard, UserCheck, Menu, X } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, Users, Upload, Settings, CreditCard, UserCheck, Menu, X, LogOut } from 'lucide-react';
 import { useState } from 'react';
 import { useEvent } from '@/contexts/EventContext';
+import { useAuth } from '@/contexts/AuthContext';
 import sincLogo from '@/assets/sinc-logo.png';
 
 const navItems = [
@@ -15,8 +16,15 @@ const navItems = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { event } = useEvent();
+  const { signOut, user } = useAuth();
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/login');
+  };
 
   return (
     <div className="min-h-screen flex">
@@ -50,7 +58,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             );
           })}
         </nav>
-        <div className="p-4 border-t border-sidebar-border">
+        <div className="p-4 border-t border-sidebar-border space-y-1">
           <Link
             to="/"
             className="flex items-center gap-2 px-4 py-2 text-sm text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors"
@@ -58,6 +66,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Users className="w-4 h-4" />
             Página pública
           </Link>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 px-4 py-2 text-sm text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors w-full"
+          >
+            <LogOut className="w-4 h-4" />
+            Sair
+          </button>
+          {user && (
+            <p className="px-4 text-xs text-sidebar-foreground/40 truncate">{user.email}</p>
+          )}
         </div>
       </aside>
 
