@@ -37,6 +37,23 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
+      // Check if email is invited
+      const { data: allowed } = await supabase
+        .from("allowed_emails")
+        .select("id")
+        .eq("email", email.trim().toLowerCase())
+        .maybeSingle();
+
+      if (!allowed) {
+        toast({
+          title: "Acesso restrito",
+          description: "Este email não está autorizado. Solicite um convite ao administrador.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
       const { error } = await supabase.auth.signUp({
         email,
         password,
