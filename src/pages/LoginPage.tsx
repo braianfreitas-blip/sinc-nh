@@ -25,6 +25,33 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    if (signupMode) {
+      if (password !== confirmPassword) {
+        toast({ title: "Erro", description: "As senhas não coincidem.", variant: "destructive" });
+        setLoading(false);
+        return;
+      }
+      if (password.length < 6) {
+        toast({ title: "Erro", description: "A senha deve ter no mínimo 6 caracteres.", variant: "destructive" });
+        setLoading(false);
+        return;
+      }
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: window.location.origin },
+      });
+      setLoading(false);
+      if (error) {
+        toast({ title: "Erro ao criar conta", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Conta criada!", description: "Verifique seu email para confirmar o cadastro." });
+        setSignupMode(false);
+      }
+      return;
+    }
+
     const { error } = await signIn(email, password);
     setLoading(false);
 
