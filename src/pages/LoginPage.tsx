@@ -14,8 +14,10 @@ import { useToast } from "@/hooks/use-toast";
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [forgotMode, setForgotMode] = useState(false);
+  const [signupMode, setSignupMode] = useState(false);
   const { signIn } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
