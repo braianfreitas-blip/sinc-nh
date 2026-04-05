@@ -168,8 +168,27 @@ export default function LoginPage() {
                 />
               </div>
             </div>
+            {signupMode && (
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="pl-10"
+                    required
+                  />
+                </div>
+              </div>
+            )}
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Entrando..." : "Entrar"}
+              {loading
+                ? (signupMode ? "Criando conta..." : "Entrando...")
+                : (signupMode ? "Criar conta" : "Entrar")}
             </Button>
 
             <div className="relative my-2">
@@ -230,12 +249,22 @@ export default function LoginPage() {
               </Button>
             </div>
 
+            {!signupMode && (
+              <button
+                type="button"
+                onClick={() => setForgotMode(true)}
+                className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Esqueci minha senha
+              </button>
+            )}
+
             <button
               type="button"
-              onClick={() => setForgotMode(true)}
+              onClick={() => { setSignupMode(!signupMode); setConfirmPassword(""); }}
               className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              Esqueci minha senha
+              {signupMode ? "Já tem conta? Entrar" : "Não tem conta? Criar conta"}
             </button>
           </form>
         </CardContent>
