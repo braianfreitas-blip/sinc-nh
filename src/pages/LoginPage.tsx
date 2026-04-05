@@ -14,8 +14,10 @@ import { useToast } from "@/hooks/use-toast";
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [forgotMode, setForgotMode] = useState(false);
+  const [signupMode, setSignupMode] = useState(false);
   const { signIn } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -23,6 +25,33 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    if (signupMode) {
+      if (password !== confirmPassword) {
+        toast({ title: "Erro", description: "As senhas não coincidem.", variant: "destructive" });
+        setLoading(false);
+        return;
+      }
+      if (password.length < 6) {
+        toast({ title: "Erro", description: "A senha deve ter no mínimo 6 caracteres.", variant: "destructive" });
+        setLoading(false);
+        return;
+      }
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: window.location.origin },
+      });
+      setLoading(false);
+      if (error) {
+        toast({ title: "Erro ao criar conta", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Conta criada!", description: "Verifique seu email para confirmar o cadastro." });
+        setSignupMode(false);
+      }
+      return;
+    }
+
     const { error } = await signIn(email, password);
     setLoading(false);
 
@@ -104,8 +133,8 @@ export default function LoginPage() {
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
             <Lock className="h-6 w-6 text-primary" />
           </div>
-          <CardTitle className="text-2xl">Área Administrativa</CardTitle>
-          <CardDescription>Entre com suas credenciais para acessar o painel</CardDescription>
+          <CardTitle className="text-2xl">{signupMode ? "Criar Conta" : "Área Administrativa"}</CardTitle>
+          <CardDescription>{signupMode ? "Preencha os dados para criar sua conta" : "Entre com suas credenciais para acessar o painel"}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -139,8 +168,27 @@ export default function LoginPage() {
                 />
               </div>
             </div>
+            {signupMode && (
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="pl-10"
+                    required
+                  />
+                </div>
+              </div>
+            )}
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Entrando..." : "Entrar"}
+              {loading
+                ? (signupMode ? "Criando conta..." : "Entrando...")
+                : (signupMode ? "Criar conta" : "Entrar")}
             </Button>
 
             <div className="relative my-2">
@@ -201,12 +249,22 @@ export default function LoginPage() {
               </Button>
             </div>
 
+            {!signupMode && (
+              <button
+                type="button"
+                onClick={() => setForgotMode(true)}
+                className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Esqueci minha senha
+              </button>
+            )}
+
             <button
               type="button"
-              onClick={() => setForgotMode(true)}
+              onClick={() => { setSignupMode(!signupMode); setConfirmPassword(""); }}
               className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              Esqueci minha senha
+              {signupMode ? "Já tem conta? Entrar" : "Não tem conta? Criar conta"}
             </button>
           </form>
         </CardContent>
