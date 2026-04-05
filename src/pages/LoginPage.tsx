@@ -133,8 +133,8 @@ export default function LoginPage() {
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
             <Lock className="h-6 w-6 text-primary" />
           </div>
-          <CardTitle className="text-2xl">Área Administrativa</CardTitle>
-          <CardDescription>Entre com suas credenciais para acessar o painel</CardDescription>
+          <CardTitle className="text-2xl">{signupMode ? "Criar Conta" : "Área Administrativa"}</CardTitle>
+          <CardDescription>{signupMode ? "Preencha os dados para criar sua conta" : "Entre com suas credenciais para acessar o painel"}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
