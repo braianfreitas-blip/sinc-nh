@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Upload, Settings, CreditCard, UserCheck, Menu, X, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, Upload, Settings, CreditCard, UserCheck, Menu, X, LogOut, UserPlus } from 'lucide-react';
 import { useState } from 'react';
 import { useEvent } from '@/contexts/EventContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,6 +12,7 @@ const navItems = [
   { to: '/admin/financial', icon: CreditCard, label: 'Financeiro' },
   { to: '/admin/checkin', icon: UserCheck, label: 'Check-in' },
   { to: '/admin/settings', icon: Settings, label: 'Configurações' },
+  { to: '/admin/invites', icon: UserPlus, label: 'Convites' },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

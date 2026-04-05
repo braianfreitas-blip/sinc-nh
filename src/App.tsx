@@ -16,6 +16,7 @@ import WhatsAppImportPage from "./pages/WhatsAppImportPage";
 import FinancialPage from "./pages/FinancialPage";
 import CheckinPage from "./pages/CheckinPage";
 import EventSettingsPage from "./pages/EventSettingsPage";
+import InvitesPage from "./pages/InvitesPage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,7 @@ const App = () => (
               <Route path="/admin/financial" element={<AdminRoute><FinancialPage /></AdminRoute>} />
               <Route path="/admin/checkin" element={<AdminRoute><CheckinPage /></AdminRoute>} />
               <Route path="/admin/settings" element={<AdminRoute><EventSettingsPage /></AdminRoute>} />
+              <Route path="/admin/invites" element={<AdminRoute><InvitesPage /></AdminRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
