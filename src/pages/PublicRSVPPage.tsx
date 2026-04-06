@@ -137,6 +137,11 @@ export default function PublicRSVPPage() {
             {event.time && <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{event.time}</span>}
             {event.location && <span className="flex items-center gap-1"><MapPin className="w-4 h-4" />{event.location}</span>}
           </div>
+          {event.cancellationDeadline && (
+            <p className="mt-4 text-sm text-primary-foreground/80 bg-primary-foreground/10 rounded-lg px-4 py-2 inline-block">
+              📅 Confirmação até {new Date(event.cancellationDeadline + 'T00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </p>
+          )}
         </div>
       </div>
 
