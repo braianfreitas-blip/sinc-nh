@@ -23,6 +23,7 @@ export default function EventSettingsPage() {
     allowCompanions: event.allowCompanions,
     maxCompanions: event.maxCompanions,
     cancellationDeadline: event.cancellationDeadline || '',
+    headerTextColor: event.headerTextColor || '',
   });
 
   const handleSave = () => {
@@ -50,6 +51,15 @@ export default function EventSettingsPage() {
         <div><Label>Descrição</Label><Textarea value={form.description} onChange={e => update('description', e.target.value)} rows={3} /></div>
         <div><Label>Limite de Convidados</Label><Input type="number" value={form.maxGuests} onChange={e => update('maxGuests', Number(e.target.value))} /></div>
         <div><Label>Data Limite para Cancelamento</Label><Input type="date" value={form.cancellationDeadline} onChange={e => update('cancellationDeadline', e.target.value)} /><p className="text-xs text-muted-foreground mt-1">Convidados podem desconfirmar até esta data</p></div>
+        <div>
+          <Label>Cor do Texto do Header (Página Pública)</Label>
+          <div className="flex items-center gap-3 mt-1">
+            <input type="color" value={form.headerTextColor || '#ffffff'} onChange={e => update('headerTextColor', e.target.value)} className="w-10 h-10 rounded border border-border cursor-pointer" />
+            <Input value={form.headerTextColor} onChange={e => update('headerTextColor', e.target.value)} placeholder="#ffffff" className="max-w-[150px]" />
+            {form.headerTextColor && <Button variant="ghost" size="sm" onClick={() => update('headerTextColor', '')}>Resetar</Button>}
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">Cor do título e data de confirmação no topo da página pública</p>
+        </div>
       </div>
 
       <div className="bg-card rounded-xl border border-border p-6 shadow-card space-y-5">
