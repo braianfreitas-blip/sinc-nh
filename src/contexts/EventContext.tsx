@@ -9,6 +9,7 @@ const DEFAULT_EVENT: EventData = {
   location: '',
   description: '',
   isPaid: false,
+  ticketLabel: 'Ingresso',
   ticketPrice: 0,
   maxGuests: 100,
   allowCompanions: false,

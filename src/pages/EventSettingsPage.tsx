@@ -18,6 +18,7 @@ export default function EventSettingsPage() {
     description: event.description,
     isPaid: event.isPaid,
     ticketPrice: event.ticketPrice,
+    ticketLabel: event.ticketLabel || 'Ingresso',
     maxGuests: event.maxGuests,
     allowCompanions: event.allowCompanions,
     maxCompanions: event.maxCompanions,
@@ -61,7 +62,10 @@ export default function EventSettingsPage() {
           <Switch checked={form.isPaid} onCheckedChange={v => update('isPaid', v)} />
         </div>
         {form.isPaid && (
-          <div><Label>Valor do Ingresso (R$)</Label><Input type="number" step="0.01" value={form.ticketPrice} onChange={e => update('ticketPrice', Number(e.target.value))} /></div>
+          <div className="space-y-4">
+            <div><Label>Nome da Cobrança</Label><Input placeholder="Ex: Retiro, Burguer, Churras, Seminário" value={form.ticketLabel} onChange={e => update('ticketLabel', e.target.value)} /><p className="text-xs text-muted-foreground mt-1">Esse nome aparecerá para os convidados</p></div>
+            <div><Label>Valor - {form.ticketLabel || 'Ingresso'} (R$)</Label><Input type="number" step="0.01" value={form.ticketPrice} onChange={e => update('ticketPrice', Number(e.target.value))} /></div>
+          </div>
         )}
       </div>
 
