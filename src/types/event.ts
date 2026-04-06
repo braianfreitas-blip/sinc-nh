@@ -42,6 +42,7 @@ export interface EventData {
   description: string;
   isPaid: boolean;
   ticketPrice: number;
+  ticketLabel: string;
   maxGuests: number;
   allowCompanions: boolean;
   maxCompanions: number;
