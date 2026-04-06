@@ -125,7 +125,7 @@ export default function PublicRSVPPage() {
       <div className="gradient-primary text-primary-foreground py-16 px-4">
         <div className="max-w-lg mx-auto text-center">
           <img src={sincLogo} alt="SINC" className="w-20 h-20 rounded-2xl object-cover mx-auto mb-6" />
-          <h1 className="font-display text-4xl font-bold mb-4">{event.name || 'Evento'}</h1>
+          <h1 className="font-display text-4xl font-bold mb-4" style={event.headerTextColor ? { color: event.headerTextColor } : undefined}>{event.name || 'Evento'}</h1>
           {event.description && <p className="text-primary-foreground/80 mb-6">{event.description}</p>}
           <div className="flex flex-wrap justify-center gap-4 text-sm text-primary-foreground/70">
             {event.date && (
@@ -138,7 +138,7 @@ export default function PublicRSVPPage() {
             {event.location && <span className="flex items-center gap-1"><MapPin className="w-4 h-4" />{event.location}</span>}
           </div>
           {event.cancellationDeadline && (
-            <p className="mt-4 text-sm text-primary-foreground/80 bg-primary-foreground/10 rounded-lg px-4 py-2 inline-block">
+            <p className="mt-4 text-sm bg-primary-foreground/10 rounded-lg px-4 py-2 inline-block" style={event.headerTextColor ? { color: event.headerTextColor } : undefined}>
               📅 Confirmação até {new Date(event.cancellationDeadline + 'T00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
           )}
