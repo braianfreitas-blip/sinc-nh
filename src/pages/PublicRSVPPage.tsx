@@ -193,7 +193,7 @@ export default function PublicRSVPPage() {
                     )}
                     {event.isPaid && (
                       <div className="bg-gold-light rounded-lg p-4 text-center">
-                        <p className="text-sm text-muted-foreground">Valor do ingresso</p>
+                        <p className="text-sm text-muted-foreground">Valor - {event.ticketLabel || 'Ingresso'}</p>
                         <p className="text-2xl font-bold text-foreground">
                           {(event.ticketPrice * (1 + companions)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                         </p>
