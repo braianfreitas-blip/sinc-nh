@@ -126,8 +126,8 @@ export default function PublicRSVPPage() {
         <div className="max-w-lg mx-auto text-center">
           <img src={sincLogo} alt="SINC" className="w-20 h-20 rounded-2xl object-cover mx-auto mb-6" />
           <h1 className="font-display text-4xl font-bold mb-4" style={event.headerTextColor ? { color: event.headerTextColor } : undefined}>{event.name || 'Evento'}</h1>
-          {event.description && <p className="text-primary-foreground/80 mb-6">{event.description}</p>}
-          <div className="flex flex-wrap justify-center gap-4 text-sm text-primary-foreground/70">
+          {event.description && <p className="text-primary-foreground/80 mb-6" style={event.headerTextColor ? { color: event.headerTextColor, opacity: 0.8 } : undefined}>{event.description}</p>}
+          <div className="flex flex-wrap justify-center gap-4 text-sm text-primary-foreground/70" style={event.headerTextColor ? { color: event.headerTextColor, opacity: 0.7 } : undefined}>
             {event.date && (
               <span className="flex items-center gap-1">
                 <CalendarDays className="w-4 h-4" />
