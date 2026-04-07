@@ -24,6 +24,7 @@ export default function EventSettingsPage() {
     maxCompanions: event.maxCompanions,
     cancellationDeadline: event.cancellationDeadline || '',
     headerTextColor: event.headerTextColor || '',
+    pixKey: event.pixKey || '',
   });
 
   const handleSave = () => {
@@ -92,6 +93,7 @@ export default function EventSettingsPage() {
           <div className="space-y-4">
             <div><Label>Nome da Cobrança</Label><Input placeholder="Ex: Retiro, Burguer, Churras, Seminário" value={form.ticketLabel} onChange={e => update('ticketLabel', e.target.value)} /><p className="text-xs text-muted-foreground mt-1">Esse nome aparecerá para os convidados</p></div>
             <div><Label>Valor - {form.ticketLabel || 'Ingresso'} (R$)</Label><Input type="number" step="0.01" value={form.ticketPrice} onChange={e => update('ticketPrice', Number(e.target.value))} /></div>
+            <div><Label>Chave PIX</Label><Input value={form.pixKey} onChange={e => update('pixKey', e.target.value)} placeholder="CPF, e-mail, telefone ou chave aleatória" /><p className="text-xs text-muted-foreground mt-1">Será utilizada no botão "Pagar agora" da página pública</p></div>
           </div>
         )}
       </div>

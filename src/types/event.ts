@@ -48,6 +48,7 @@ export interface EventData {
   maxCompanions: number;
   cancellationDeadline?: string;
   headerTextColor?: string;
+  pixKey?: string;
   guests: Guest[];
   payments: PaymentRecord[];
   createdAt: string;
