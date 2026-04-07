@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { Save } from 'lucide-react';
+import { Save, MapPin, Navigation } from 'lucide-react';
 
 export default function EventSettingsPage() {
   const { event, updateEvent } = useEvent();
@@ -47,7 +47,24 @@ export default function EventSettingsPage() {
           <div><Label>Data</Label><Input type="date" value={form.date} onChange={e => update('date', e.target.value)} /></div>
           <div><Label>Horário</Label><Input type="time" value={form.time} onChange={e => update('time', e.target.value)} /></div>
         </div>
-        <div><Label>Local</Label><Input value={form.location} onChange={e => update('location', e.target.value)} /></div>
+        <div>
+          <Label>Local</Label>
+          <Input value={form.location} onChange={e => update('location', e.target.value)} placeholder="Digite o endereço do evento" />
+          {form.location && (
+            <div className="flex gap-2 mt-2">
+              <Button type="button" variant="outline" size="sm" asChild>
+                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(form.location)}`} target="_blank" rel="noopener noreferrer">
+                  <MapPin className="w-4 h-4 mr-1" />Google Maps
+                </a>
+              </Button>
+              <Button type="button" variant="outline" size="sm" asChild>
+                <a href={`https://waze.com/ul?q=${encodeURIComponent(form.location)}`} target="_blank" rel="noopener noreferrer">
+                  <Navigation className="w-4 h-4 mr-1" />Waze
+                </a>
+              </Button>
+            </div>
+          )}
+        </div>
         <div><Label>Descrição</Label><Textarea value={form.description} onChange={e => update('description', e.target.value)} rows={3} /></div>
         <div><Label>Limite de Convidados</Label><Input type="number" value={form.maxGuests} onChange={e => update('maxGuests', Number(e.target.value))} /></div>
         <div><Label>Data Limite para Cancelamento</Label><Input type="date" value={form.cancellationDeadline} onChange={e => update('cancellationDeadline', e.target.value)} /><p className="text-xs text-muted-foreground mt-1">Convidados podem desconfirmar até esta data</p></div>
