@@ -135,7 +135,13 @@ export default function PublicRSVPPage() {
               </span>
             )}
             {event.time && <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{event.time}</span>}
-            {event.location && <span className="flex items-center gap-1"><MapPin className="w-4 h-4" />{event.location}</span>}
+            {event.location && (
+              <span className="flex items-center gap-1 flex-wrap">
+                <MapPin className="w-4 h-4" />{event.location}
+                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`} target="_blank" rel="noopener noreferrer" className="text-primary underline text-xs ml-1">Maps</a>
+                <a href={`https://waze.com/ul?q=${encodeURIComponent(event.location)}`} target="_blank" rel="noopener noreferrer" className="text-primary underline text-xs ml-1">Waze</a>
+              </span>
+            )}
           </div>
           {event.cancellationDeadline && (
             <p className="mt-4 text-sm bg-primary-foreground/10 rounded-lg px-4 py-2 inline-block" style={event.headerTextColor ? { color: event.headerTextColor } : undefined}>
