@@ -4,7 +4,7 @@ import { useEvent } from '@/contexts/EventContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { MapPin, Clock, CheckCircle2, AlertCircle, Users, CalendarDays, XCircle, Search, CreditCard } from 'lucide-react';
+import { MapPin, Clock, CheckCircle2, AlertCircle, Users, CalendarDays, XCircle, Search, CreditCard, Navigation2 } from 'lucide-react';
 import { PAYMENT_LABELS } from '@/types/event';
 import { toast } from 'sonner';
 import sincLogo from '@/assets/sinc-logo.png';
@@ -138,8 +138,12 @@ export default function PublicRSVPPage() {
             {event.location && (
               <span className="flex items-center gap-1 flex-wrap">
                 <MapPin className="w-4 h-4" />{event.location}
-                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`} target="_blank" rel="noopener noreferrer" className="text-primary underline text-xs ml-1">Maps</a>
-                <a href={`https://waze.com/ul?q=${encodeURIComponent(event.location)}`} target="_blank" rel="noopener noreferrer" className="text-primary underline text-xs ml-1">Waze</a>
+                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`} target="_blank" rel="noopener noreferrer" className="ml-2 inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors" title="Google Maps">
+                  <MapPin className="w-3.5 h-3.5 text-primary" />
+                </a>
+                <a href={`https://waze.com/ul?q=${encodeURIComponent(event.location)}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors" title="Waze">
+                  <Navigation2 className="w-3.5 h-3.5 text-primary" />
+                </a>
               </span>
             )}
           </div>
