@@ -320,7 +320,15 @@ export default function PublicRSVPPage() {
                           <p className="text-2xl font-bold mt-1">
                             {(lookupResult.amountDue - lookupResult.amountPaid).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                           </p>
-                          <p className="text-xs text-muted-foreground mt-1">A confirmação do pagamento será feita pelo administrador.</p>
+                          {event.pixKey && (
+                            <Button className="mt-3 w-full" onClick={() => {
+                              navigator.clipboard.writeText(event.pixKey!);
+                              toast.success('Chave PIX copiada! Cole no app do seu banco para pagar.');
+                            }}>
+                              <CreditCard className="w-4 h-4 mr-2" />Pagar Agora (PIX)
+                            </Button>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-2">A confirmação do pagamento será feita pelo administrador.</p>
                         </>
                       )}
                       {lookupResult.paymentStatus === 'paid' && (
