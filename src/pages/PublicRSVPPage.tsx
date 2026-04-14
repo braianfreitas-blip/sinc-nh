@@ -232,13 +232,19 @@ export default function PublicRSVPPage() {
                       <Users className="w-4 h-4" />+{found!.companions} acompanhante(s)
                     </p>
                   )}
-                  {event.isPaid && found!.paymentStatus === 'pending' && (
+                  {event.isPaid && (found!.paymentStatus === 'pending' || found!.paymentStatus === 'partial') && (
                     <div className="bg-warning/10 rounded-lg p-4 mt-4">
                       <p className="text-sm font-medium text-warning">Pagamento pendente</p>
                       <p className="text-2xl font-bold mt-1">{(found!.amountDue - found!.amountPaid).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
-                      <Button className="mt-3 w-full" onClick={() => toast.info('Integração com Stripe será habilitada em breve.')}>
-                        Pagar Agora
-                      </Button>
+                      {event.pixKey && (
+                        <Button className="mt-3 w-full" onClick={() => {
+                          navigator.clipboard.writeText(event.pixKey!);
+                          toast.success('Chave PIX copiada! Cole no app do seu banco para pagar.');
+                        }}>
+                          <CreditCard className="w-4 h-4 mr-2" />Pagar Agora (PIX)
+                        </Button>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-2">A confirmação do pagamento será feita pelo administrador.</p>
                     </div>
                   )}
                   {event.isPaid && found!.paymentStatus === 'paid' && (
