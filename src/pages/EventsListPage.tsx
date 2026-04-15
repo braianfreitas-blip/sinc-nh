@@ -116,8 +116,13 @@ export default function EventsListPage() {
             <p className="text-xs text-sidebar-foreground/60">Gestão de Eventos</p>
           </div>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {user && <span className="text-xs text-sidebar-foreground/60 hidden sm:block">{user.email}</span>}
+          <Link to="/admin/invites">
+            <Button variant="ghost" size="sm" className="text-sidebar-foreground/70 hover:text-sidebar-foreground">
+              <UserPlus className="w-4 h-4 mr-1" />Convites
+            </Button>
+          </Link>
           <Button variant="ghost" size="sm" className="text-sidebar-foreground/70 hover:text-sidebar-foreground" onClick={handleLogout}>
             Sair
           </Button>
