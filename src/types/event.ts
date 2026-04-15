@@ -35,6 +35,7 @@ export interface PaymentRecord {
 
 export interface EventData {
   id: string;
+  slug?: string;
   name: string;
   date: string;
   time: string;

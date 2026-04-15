@@ -12,6 +12,7 @@ import sincLogo from '@/assets/sinc-logo.png';
 
 interface EventSummary {
   id: string;
+  slug?: string;
   name: string;
   date: string;
   time: string;
@@ -33,7 +34,7 @@ export default function EventsListPage() {
   const loadEvents = async () => {
     const { data, error } = await supabase
       .from('events')
-      .select('id, name, date, time, location, created_at')
+      .select('id, name, date, time, location, created_at, slug')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -166,7 +167,7 @@ export default function EventsListPage() {
                     className="p-2 rounded-lg hover:bg-primary/10"
                     onClick={(e) => {
                       e.stopPropagation();
-                      const url = `${window.location.origin}/event/${ev.id}`;
+                      const url = `${window.location.origin}/event/${ev.slug || ev.id}`;
                       navigator.clipboard.writeText(url);
                       toast.success('Link público copiado!');
                     }}
