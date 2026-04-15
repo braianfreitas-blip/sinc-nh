@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { LayoutDashboard, Users, Upload, Settings, CreditCard, UserCheck, Menu, X, LogOut, ArrowLeft } from 'lucide-react';
+import { LayoutDashboard, Users, Upload, Settings, CreditCard, UserCheck, Menu, X, LogOut, ArrowLeft, Link2 } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { useEvent } from '@/contexts/EventContext';
 import { useAuth } from '@/contexts/AuthContext';
 import sincLogo from '@/assets/sinc-logo.png';
@@ -77,6 +78,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Users className="w-4 h-4" />
               Página pública
             </Link>
+          )}
+          {eventId && (
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(`${window.location.origin}/event/${eventId}`);
+                toast.success('Link público copiado!');
+              }}
+              className="flex items-center gap-2 px-4 py-2 text-sm text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors w-full"
+            >
+              <Link2 className="w-4 h-4" />
+              Copiar link público
+            </button>
           )}
           <button
             onClick={handleLogout}
