@@ -50,6 +50,7 @@ export type Database = {
           max_guests: number
           name: string
           pix_key: string | null
+          slug: string | null
           ticket_label: string
           ticket_price: number
           time: string
@@ -69,6 +70,7 @@ export type Database = {
           max_guests?: number
           name?: string
           pix_key?: string | null
+          slug?: string | null
           ticket_label?: string
           ticket_price?: number
           time?: string
@@ -88,6 +90,7 @@ export type Database = {
           max_guests?: number
           name?: string
           pix_key?: string | null
+          slug?: string | null
           ticket_label?: string
           ticket_price?: number
           time?: string

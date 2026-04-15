@@ -91,6 +91,7 @@ function mapPayment(row: any): PaymentRecord {
 function mapEvent(row: any): Omit<EventData, 'guests' | 'payments'> {
   return {
     id: row.id,
+    slug: row.slug || undefined,
     name: row.name,
     date: row.date,
     time: row.time,
@@ -116,12 +117,17 @@ export function EventProvider({ children, eventId }: { children: React.ReactNode
   const loadData = useCallback(async () => {
     if (!eventId) return;
     try {
-      const [eventRes, guestsRes] = await Promise.all([
-        supabase.from('events').select('*').eq('id', eventId).single(),
-        supabase.from('guests').select('*').eq('event_id', eventId).order('created_at', { ascending: true }),
-      ]);
+      // Try by UUID first, then by slug
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
+      const eventQuery = isUUID
+        ? supabase.from('events').select('*').eq('id', eventId).single()
+        : supabase.from('events').select('*').eq('slug', eventId).single();
 
+      const eventRes = await eventQuery;
       if (eventRes.error) throw eventRes.error;
+
+      const realId = eventRes.data.id;
+      const guestsRes = await supabase.from('guests').select('*').eq('event_id', realId).order('created_at', { ascending: true });
 
       const eventData = mapEvent(eventRes.data);
       const guests = (guestsRes.data || []).map(mapGuest);
@@ -150,6 +156,7 @@ export function EventProvider({ children, eventId }: { children: React.ReactNode
 
     const dbData: Record<string, any> = {};
     if (data.name !== undefined) dbData.name = data.name;
+    if (data.slug !== undefined) dbData.slug = data.slug || null;
     if (data.date !== undefined) dbData.date = data.date;
     if (data.time !== undefined) dbData.time = data.time;
     if (data.location !== undefined) dbData.location = data.location;
@@ -165,10 +172,17 @@ export function EventProvider({ children, eventId }: { children: React.ReactNode
     if (data.headerTextColor !== undefined) dbData.header_text_color = data.headerTextColor || null;
 
     if (Object.keys(dbData).length > 0) {
-      const { error } = await supabase.from('events').update(dbData).eq('id', eventId);
-      if (error) console.error('Error updating event:', error);
+      const realId = event.id;
+      const { error } = await supabase.from('events').update(dbData).eq('id', realId);
+      if (error) {
+        console.error('Error updating event:', error);
+        if (error.code === '23505' && data.slug) {
+          const { toast } = await import('sonner');
+          toast.error('Este slug já está em uso. Escolha outro.');
+        }
+      }
     }
-  }, [eventId]);
+  }, [event.id]);
 
   const addGuest = useCallback((guestData: Omit<Guest, 'id' | 'createdAt'>): Guest => {
     const tempId = crypto.randomUUID();

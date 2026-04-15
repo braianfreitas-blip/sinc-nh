@@ -12,6 +12,7 @@ export default function EventSettingsPage() {
   const { event, updateEvent } = useEvent();
   const [form, setForm] = useState({
     name: event.name,
+    slug: event.slug || '',
     date: event.date,
     time: event.time,
     location: event.location,
@@ -44,6 +45,18 @@ export default function EventSettingsPage() {
 
       <div className="bg-card rounded-xl border border-border p-6 shadow-card space-y-5">
         <div><Label>Nome do Evento *</Label><Input value={form.name} onChange={e => update('name', e.target.value)} /></div>
+        <div>
+          <Label>Slug (URL amigável)</Label>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-sm text-muted-foreground whitespace-nowrap">{window.location.origin}/event/</span>
+            <Input 
+              value={form.slug} 
+              onChange={e => update('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} 
+              placeholder="festa-aniversario" 
+            />
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">Deixe vazio para usar o ID padrão. Apenas letras minúsculas, números e hífens.</p>
+        </div>
         <div className="grid grid-cols-2 gap-4">
           <div><Label>Data</Label><Input type="date" value={form.date} onChange={e => update('date', e.target.value)} /></div>
           <div><Label>Horário</Label><Input type="time" value={form.time} onChange={e => update('time', e.target.value)} /></div>

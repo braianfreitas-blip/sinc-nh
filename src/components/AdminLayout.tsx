@@ -82,7 +82,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {eventId && (
             <button
               onClick={() => {
-                navigator.clipboard.writeText(`${window.location.origin}/event/${eventId}`);
+                navigator.clipboard.writeText(`${window.location.origin}/event/${event.slug || eventId}`);
                 toast.success('Link público copiado!');
               }}
               className="flex items-center gap-2 px-4 py-2 text-sm text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors w-full"
