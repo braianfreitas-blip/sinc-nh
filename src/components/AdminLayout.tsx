@@ -1,26 +1,28 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Upload, Settings, CreditCard, UserCheck, Menu, X, LogOut, UserPlus } from 'lucide-react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { LayoutDashboard, Users, Upload, Settings, CreditCard, UserCheck, Menu, X, LogOut, ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 import { useEvent } from '@/contexts/EventContext';
 import { useAuth } from '@/contexts/AuthContext';
 import sincLogo from '@/assets/sinc-logo.png';
 
-const navItems = [
-  { to: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/admin/guests', icon: Users, label: 'Convidados' },
-  { to: '/admin/import', icon: Upload, label: 'Importar' },
-  { to: '/admin/financial', icon: CreditCard, label: 'Financeiro' },
-  { to: '/admin/checkin', icon: UserCheck, label: 'Check-in' },
-  { to: '/admin/settings', icon: Settings, label: 'Configurações' },
-  { to: '/admin/invites', icon: UserPlus, label: 'Convites' },
-];
-
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { eventId } = useParams<{ eventId: string }>();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { event } = useEvent();
   const { signOut, user } = useAuth();
+
+  const base = `/admin/events/${eventId}`;
+
+  const navItems = [
+    { to: base, icon: LayoutDashboard, label: 'Dashboard' },
+    { to: `${base}/guests`, icon: Users, label: 'Convidados' },
+    { to: `${base}/import`, icon: Upload, label: 'Importar' },
+    { to: `${base}/financial`, icon: CreditCard, label: 'Financeiro' },
+    { to: `${base}/checkin`, icon: UserCheck, label: 'Check-in' },
+    { to: `${base}/settings`, icon: Settings, label: 'Configurações' },
+  ];
 
   const handleLogout = async () => {
     await signOut();
@@ -41,6 +43,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Link>
         </div>
         <nav className="flex-1 p-4 space-y-1">
+          <Link
+            to="/admin"
+            className="flex items-center gap-3 px-4 py-2 mb-2 rounded-lg text-xs font-medium text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/30 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Voltar aos eventos
+          </Link>
           {navItems.map(item => {
             const active = location.pathname === item.to;
             return (
@@ -60,13 +69,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           })}
         </nav>
         <div className="p-4 border-t border-sidebar-border space-y-1">
-          <Link
-            to="/"
-            className="flex items-center gap-2 px-4 py-2 text-sm text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors"
-          >
-            <Users className="w-4 h-4" />
-            Página pública
-          </Link>
+          {eventId && (
+            <Link
+              to={`/event/${eventId}`}
+              className="flex items-center gap-2 px-4 py-2 text-sm text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors"
+            >
+              <Users className="w-4 h-4" />
+              Página pública
+            </Link>
+          )}
           <button
             onClick={handleLogout}
             className="flex items-center gap-2 px-4 py-2 text-sm text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors w-full"
@@ -95,6 +106,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {mobileOpen && (
         <div className="lg:hidden fixed inset-0 z-40 bg-foreground/50" onClick={() => setMobileOpen(false)}>
           <div className="w-64 h-full gradient-primary p-4 pt-20 space-y-1" onClick={e => e.stopPropagation()}>
+            <Link
+              to="/admin"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-3 px-4 py-2 mb-2 rounded-lg text-xs font-medium text-sidebar-foreground/50 hover:text-sidebar-foreground"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Voltar aos eventos
+            </Link>
             {navItems.map(item => {
               const active = location.pathname === item.to;
               return (
