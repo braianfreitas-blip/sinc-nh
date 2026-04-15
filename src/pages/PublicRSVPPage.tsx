@@ -241,7 +241,7 @@ export default function PublicRSVPPage() {
                           navigator.clipboard.writeText(event.pixKey!);
                           toast.success('Chave PIX copiada! Cole no app do seu banco para pagar.');
                         }}>
-                          <CreditCard className="w-4 h-4 mr-2" />Pagar Agora (PIX)
+                          <CreditCard className="w-4 h-4 mr-2" />Clique para copiar chave PIX
                         </Button>
                       )}
                       <p className="text-xs text-muted-foreground mt-2">A confirmação do pagamento será feita pelo administrador.</p>
@@ -325,7 +325,7 @@ export default function PublicRSVPPage() {
                               navigator.clipboard.writeText(event.pixKey!);
                               toast.success('Chave PIX copiada! Cole no app do seu banco para pagar.');
                             }}>
-                              <CreditCard className="w-4 h-4 mr-2" />Pagar Agora (PIX)
+                              <CreditCard className="w-4 h-4 mr-2" />Clique para copiar chave PIX
                             </Button>
                           )}
                           <p className="text-xs text-muted-foreground mt-2">A confirmação do pagamento será feita pelo administrador.</p>
