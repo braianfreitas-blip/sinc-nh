@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, CalendarDays, MapPin, Users, Trash2, UserPlus } from 'lucide-react';
+import { Plus, CalendarDays, MapPin, Users, Trash2, UserPlus, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import sincLogo from '@/assets/sinc-logo.png';
@@ -161,16 +161,30 @@ export default function EventsListPage() {
                 className="bg-card rounded-xl border border-border shadow-card p-6 hover:shadow-elegant transition-shadow cursor-pointer group relative"
                 onClick={() => navigate(`/admin/events/${ev.id}`)}
               >
-                <button
-                  className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-lg hover:bg-destructive/10"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(ev.id, ev.name);
-                  }}
-                  title="Excluir evento"
-                >
-                  <Trash2 className="w-4 h-4 text-destructive" />
-                </button>
+                <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                  <button
+                    className="p-2 rounded-lg hover:bg-primary/10"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const url = `${window.location.origin}/event/${ev.id}`;
+                      navigator.clipboard.writeText(url);
+                      toast.success('Link público copiado!');
+                    }}
+                    title="Copiar link público"
+                  >
+                    <Link2 className="w-4 h-4 text-primary" />
+                  </button>
+                  <button
+                    className="p-2 rounded-lg hover:bg-destructive/10"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(ev.id, ev.name);
+                    }}
+                    title="Excluir evento"
+                  >
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </button>
+                </div>
                 <h3 className="font-display text-lg font-semibold mb-2">{ev.name}</h3>
                 <div className="space-y-1 text-sm text-muted-foreground">
                   {ev.date && (
