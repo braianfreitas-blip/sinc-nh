@@ -171,7 +171,7 @@ export default function PublicRSVPPage() {
             className="flex-1"
             onClick={() => { setMode('manage'); resetForm(); }}
           >
-            <Search className="w-4 h-4 mr-2" />Gerenciar
+            <Search className="w-4 h-4 mr-2" />Desconfirmar
           </Button>
         </div>
 
