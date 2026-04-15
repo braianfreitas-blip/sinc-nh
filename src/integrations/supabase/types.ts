@@ -35,6 +35,181 @@ export type Database = {
         }
         Relationships: []
       }
+      events: {
+        Row: {
+          allow_companions: boolean
+          cancellation_deadline: string | null
+          created_at: string
+          date: string
+          description: string
+          header_text_color: string | null
+          id: string
+          is_paid: boolean
+          location: string
+          max_companions: number
+          max_guests: number
+          name: string
+          pix_key: string | null
+          ticket_label: string
+          ticket_price: number
+          time: string
+          updated_at: string
+        }
+        Insert: {
+          allow_companions?: boolean
+          cancellation_deadline?: string | null
+          created_at?: string
+          date?: string
+          description?: string
+          header_text_color?: string | null
+          id?: string
+          is_paid?: boolean
+          location?: string
+          max_companions?: number
+          max_guests?: number
+          name?: string
+          pix_key?: string | null
+          ticket_label?: string
+          ticket_price?: number
+          time?: string
+          updated_at?: string
+        }
+        Update: {
+          allow_companions?: boolean
+          cancellation_deadline?: string | null
+          created_at?: string
+          date?: string
+          description?: string
+          header_text_color?: string | null
+          id?: string
+          is_paid?: boolean
+          location?: string
+          max_companions?: number
+          max_guests?: number
+          name?: string
+          pix_key?: string | null
+          ticket_label?: string
+          ticket_price?: number
+          time?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      guests: {
+        Row: {
+          amount_due: number
+          amount_paid: number
+          checked_in: boolean
+          checked_in_at: string | null
+          companions: number
+          confirmed_at: string | null
+          created_at: string
+          email: string | null
+          event_id: string
+          first_name: string
+          id: string
+          invited_by: string | null
+          last_name: string
+          notes: string
+          paid_at: string | null
+          payment_method: string | null
+          payment_status: string
+          phone: string | null
+          presence_status: string
+        }
+        Insert: {
+          amount_due?: number
+          amount_paid?: number
+          checked_in?: boolean
+          checked_in_at?: string | null
+          companions?: number
+          confirmed_at?: string | null
+          created_at?: string
+          email?: string | null
+          event_id: string
+          first_name: string
+          id?: string
+          invited_by?: string | null
+          last_name: string
+          notes?: string
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_status?: string
+          phone?: string | null
+          presence_status?: string
+        }
+        Update: {
+          amount_due?: number
+          amount_paid?: number
+          checked_in?: boolean
+          checked_in_at?: string | null
+          companions?: number
+          confirmed_at?: string | null
+          created_at?: string
+          email?: string | null
+          event_id?: string
+          first_name?: string
+          id?: string
+          invited_by?: string | null
+          last_name?: string
+          notes?: string
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_status?: string
+          phone?: string | null
+          presence_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          date: string
+          guest_id: string
+          id: string
+          is_manual: boolean
+          method: string
+          notes: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          date: string
+          guest_id: string
+          id?: string
+          is_manual?: boolean
+          method: string
+          notes?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          date?: string
+          guest_id?: string
+          id?: string
+          is_manual?: boolean
+          method?: string
+          notes?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
