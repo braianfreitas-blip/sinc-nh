@@ -1,11 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { useParams } from 'react-router-dom';
 import { EventData, Guest, PaymentRecord, PaymentMethod } from '@/types/event';
 import { supabase } from '@/integrations/supabase/client';
 
-const DEFAULT_EVENT_ID = '00000000-0000-0000-0000-000000000001';
-
 const DEFAULT_EVENT: EventData = {
-  id: DEFAULT_EVENT_ID,
+  id: '',
   name: 'Meu Evento',
   date: '',
   time: '',
@@ -54,7 +53,6 @@ interface EventStats {
 
 const EventContext = createContext<EventContextType | null>(null);
 
-// Map DB row to Guest
 function mapGuest(row: any): Guest {
   return {
     id: row.id,
@@ -78,7 +76,6 @@ function mapGuest(row: any): Guest {
   };
 }
 
-// Map DB row to PaymentRecord
 function mapPayment(row: any): PaymentRecord {
   return {
     id: row.id,
@@ -91,7 +88,6 @@ function mapPayment(row: any): PaymentRecord {
   };
 }
 
-// Map DB event row to partial EventData
 function mapEvent(row: any): Omit<EventData, 'guests' | 'payments'> {
   return {
     id: row.id,
@@ -113,27 +109,29 @@ function mapEvent(row: any): Omit<EventData, 'guests' | 'payments'> {
   };
 }
 
-export function EventProvider({ children }: { children: React.ReactNode }) {
-  const [event, setEvent] = useState<EventData>(DEFAULT_EVENT);
+export function EventProvider({ children, eventId }: { children: React.ReactNode; eventId: string }) {
+  const [event, setEvent] = useState<EventData>({ ...DEFAULT_EVENT, id: eventId });
   const [loading, setLoading] = useState(true);
 
-  // Load data from DB
   const loadData = useCallback(async () => {
+    if (!eventId) return;
     try {
-      const [eventRes, guestsRes, paymentsRes] = await Promise.all([
-        supabase.from('events').select('*').eq('id', DEFAULT_EVENT_ID).single(),
-        supabase.from('guests').select('*').eq('event_id', DEFAULT_EVENT_ID).order('created_at', { ascending: true }),
-        supabase.from('payments').select('*'),
+      const [eventRes, guestsRes] = await Promise.all([
+        supabase.from('events').select('*').eq('id', eventId).single(),
+        supabase.from('guests').select('*').eq('event_id', eventId).order('created_at', { ascending: true }),
       ]);
 
       if (eventRes.error) throw eventRes.error;
 
       const eventData = mapEvent(eventRes.data);
       const guests = (guestsRes.data || []).map(mapGuest);
-      
-      // Filter payments to only those belonging to guests of this event
-      const guestIds = new Set(guests.map(g => g.id));
-      const payments = (paymentsRes.data || []).filter((p: any) => guestIds.has(p.guest_id)).map(mapPayment);
+
+      const guestIds = guests.map(g => g.id);
+      let payments: PaymentRecord[] = [];
+      if (guestIds.length > 0) {
+        const { data: payData } = await supabase.from('payments').select('*').in('guest_id', guestIds);
+        payments = (payData || []).map(mapPayment);
+      }
 
       setEvent({ ...eventData, guests, payments });
     } catch (err) {
@@ -141,80 +139,13 @@ export function EventProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [eventId]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  // Migrate localStorage data if it exists
-  useEffect(() => {
-    if (loading) return;
-    const saved = localStorage.getItem('eventData');
-    if (!saved) return;
-    
-    try {
-      const localData: EventData = JSON.parse(saved);
-      // Only migrate if there are guests in localStorage and none in DB
-      if (localData.guests.length > 0 && event.guests.length === 0) {
-        console.log('Migrating localStorage data to database...');
-        migrateLocalData(localData).then(() => {
-          localStorage.removeItem('eventData');
-          loadData();
-        });
-      } else {
-        localStorage.removeItem('eventData');
-      }
-    } catch {
-      localStorage.removeItem('eventData');
-    }
-  }, [loading]);
-
-  const migrateLocalData = async (localData: EventData) => {
-    // Update event settings
-    await supabase.from('events').update({
-      name: localData.name,
-      date: localData.date,
-      time: localData.time,
-      location: localData.location,
-      description: localData.description,
-      is_paid: localData.isPaid,
-      ticket_price: localData.ticketPrice,
-      ticket_label: localData.ticketLabel,
-      pix_key: localData.pixKey || null,
-      max_guests: localData.maxGuests,
-      allow_companions: localData.allowCompanions,
-      max_companions: localData.maxCompanions,
-      cancellation_deadline: localData.cancellationDeadline || null,
-      header_text_color: localData.headerTextColor || null,
-    }).eq('id', DEFAULT_EVENT_ID);
-
-    // Insert guests
-    for (const g of localData.guests) {
-      await supabase.from('guests').insert({
-        event_id: DEFAULT_EVENT_ID,
-        first_name: g.firstName,
-        last_name: g.lastName,
-        phone: g.phone || null,
-        email: g.email || null,
-        presence_status: g.presenceStatus,
-        payment_status: g.paymentStatus,
-        amount_due: g.amountDue,
-        amount_paid: g.amountPaid,
-        companions: g.companions,
-        notes: g.notes,
-        confirmed_at: g.confirmedAt || null,
-        paid_at: g.paidAt || null,
-        payment_method: g.paymentMethod || null,
-        checked_in: g.checkedIn,
-        checked_in_at: g.checkedInAt || null,
-        invited_by: g.invitedBy || null,
-      });
-    }
-  };
-
   const updateEvent = useCallback(async (data: Partial<EventData>) => {
-    // Optimistic update
     setEvent(prev => ({ ...prev, ...data }));
 
     const dbData: Record<string, any> = {};
@@ -234,22 +165,20 @@ export function EventProvider({ children }: { children: React.ReactNode }) {
     if (data.headerTextColor !== undefined) dbData.header_text_color = data.headerTextColor || null;
 
     if (Object.keys(dbData).length > 0) {
-      const { error } = await supabase.from('events').update(dbData).eq('id', DEFAULT_EVENT_ID);
+      const { error } = await supabase.from('events').update(dbData).eq('id', eventId);
       if (error) console.error('Error updating event:', error);
     }
-  }, []);
+  }, [eventId]);
 
   const addGuest = useCallback((guestData: Omit<Guest, 'id' | 'createdAt'>): Guest => {
     const tempId = crypto.randomUUID();
     const now = new Date().toISOString();
     const guest: Guest = { ...guestData, id: tempId, createdAt: now };
 
-    // Optimistic update
     setEvent(prev => ({ ...prev, guests: [...prev.guests, guest] }));
 
-    // Persist
     supabase.from('guests').insert({
-      event_id: DEFAULT_EVENT_ID,
+      event_id: eventId,
       first_name: guestData.firstName,
       last_name: guestData.lastName,
       phone: guestData.phone || null,
@@ -267,11 +196,7 @@ export function EventProvider({ children }: { children: React.ReactNode }) {
       checked_in_at: guestData.checkedInAt || null,
       invited_by: guestData.invitedBy || null,
     }).select().single().then(({ data, error }) => {
-      if (error) {
-        console.error('Error adding guest:', error);
-        return;
-      }
-      // Replace temp ID with real DB ID
+      if (error) { console.error('Error adding guest:', error); return; }
       if (data) {
         setEvent(prev => ({
           ...prev,
@@ -281,10 +206,9 @@ export function EventProvider({ children }: { children: React.ReactNode }) {
     });
 
     return guest;
-  }, []);
+  }, [eventId]);
 
   const updateGuest = useCallback((id: string, data: Partial<Guest>) => {
-    // Optimistic update
     setEvent(prev => ({
       ...prev,
       guests: prev.guests.map(g => g.id === id ? { ...g, ...data } : g),
@@ -340,10 +264,7 @@ export function EventProvider({ children }: { children: React.ReactNode }) {
       notes: payment.notes,
       is_manual: payment.isManual,
     }).select().single().then(({ data, error }) => {
-      if (error) {
-        console.error('Error adding payment:', error);
-        return;
-      }
+      if (error) { console.error('Error adding payment:', error); return; }
       if (data) {
         setEvent(prev => ({
           ...prev,

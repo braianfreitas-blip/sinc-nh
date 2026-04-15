@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useParams, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,39 +17,69 @@ import FinancialPage from "./pages/FinancialPage";
 import CheckinPage from "./pages/CheckinPage";
 import EventSettingsPage from "./pages/EventSettingsPage";
 import InvitesPage from "./pages/InvitesPage";
+import EventsListPage from "./pages/EventsListPage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
 
-const AdminRoute = ({ children }: { children: React.ReactNode }) => (
-  <ProtectedRoute>
-    <AdminLayout>{children}</AdminLayout>
-  </ProtectedRoute>
-);
+function EventAdminRoute({ children }: { children: React.ReactNode }) {
+  const { eventId } = useParams<{ eventId: string }>();
+  if (!eventId) return <Navigate to="/admin" replace />;
+  return (
+    <ProtectedRoute>
+      <EventProvider eventId={eventId}>
+        <AdminLayout>{children}</AdminLayout>
+      </EventProvider>
+    </ProtectedRoute>
+  );
+}
+
+function PublicEventRoute() {
+  const { eventId } = useParams<{ eventId: string }>();
+  if (!eventId) return <NotFound />;
+  return (
+    <EventProvider eventId={eventId}>
+      <PublicRSVPPage />
+    </EventProvider>
+  );
+}
+
+function InvitesPageWrapper() {
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="mb-6">
+          <a href="/admin" className="text-sm text-muted-foreground hover:text-foreground">← Voltar aos eventos</a>
+        </div>
+        <InvitesPage />
+      </div>
+    </div>
+  );
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
-        <EventProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<PublicRSVPPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/reset-password" element={<ResetPasswordPage />} />
-              <Route path="/admin" element={<AdminRoute><DashboardPage /></AdminRoute>} />
-              <Route path="/admin/guests" element={<AdminRoute><GuestListPage /></AdminRoute>} />
-              <Route path="/admin/import" element={<AdminRoute><WhatsAppImportPage /></AdminRoute>} />
-              <Route path="/admin/financial" element={<AdminRoute><FinancialPage /></AdminRoute>} />
-              <Route path="/admin/checkin" element={<AdminRoute><CheckinPage /></AdminRoute>} />
-              <Route path="/admin/settings" element={<AdminRoute><EventSettingsPage /></AdminRoute>} />
-              <Route path="/admin/invites" element={<AdminRoute><InvitesPage /></AdminRoute>} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </EventProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/event/:eventId" element={<PublicEventRoute />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/admin" element={<ProtectedRoute><EventsListPage /></ProtectedRoute>} />
+            <Route path="/admin/invites" element={<ProtectedRoute><InvitesPageWrapper /></ProtectedRoute>} />
+            <Route path="/admin/events/:eventId" element={<EventAdminRoute><DashboardPage /></EventAdminRoute>} />
+            <Route path="/admin/events/:eventId/guests" element={<EventAdminRoute><GuestListPage /></EventAdminRoute>} />
+            <Route path="/admin/events/:eventId/import" element={<EventAdminRoute><WhatsAppImportPage /></EventAdminRoute>} />
+            <Route path="/admin/events/:eventId/financial" element={<EventAdminRoute><FinancialPage /></EventAdminRoute>} />
+            <Route path="/admin/events/:eventId/checkin" element={<EventAdminRoute><CheckinPage /></EventAdminRoute>} />
+            <Route path="/admin/events/:eventId/settings" element={<EventAdminRoute><EventSettingsPage /></EventAdminRoute>} />
+            <Route path="/" element={<Navigate to="/admin" replace />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
