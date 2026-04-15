@@ -56,7 +56,7 @@ const App = () => (
             <Route path="/login" element={<LoginPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/admin" element={<ProtectedRoute><EventsListPage /></ProtectedRoute>} />
-            <Route path="/admin/invites" element={<ProtectedRoute><InvitesPage /></ProtectedRoute>} />
+            <Route path="/admin/invites" element={<ProtectedRoute><InvitesPageWrapper /></ProtectedRoute>} />
             <Route path="/admin/events/:eventId" element={<EventAdminRoute><DashboardPage /></EventAdminRoute>} />
             <Route path="/admin/events/:eventId/guests" element={<EventAdminRoute><GuestListPage /></EventAdminRoute>} />
             <Route path="/admin/events/:eventId/import" element={<EventAdminRoute><WhatsAppImportPage /></EventAdminRoute>} />
