@@ -44,6 +44,19 @@ function PublicEventRoute() {
   );
 }
 
+function InvitesPageWrapper() {
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="mb-6">
+          <a href="/admin" className="text-sm text-muted-foreground hover:text-foreground">← Voltar aos eventos</a>
+        </div>
+        <InvitesPage />
+      </div>
+    </div>
+  );
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
