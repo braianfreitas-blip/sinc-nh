@@ -1,0 +1,1 @@
+ALTER TABLE public.events ADD COLUMN use_tickets boolean NOT NULL DEFAULT false;

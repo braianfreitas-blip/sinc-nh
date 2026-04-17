@@ -55,6 +55,7 @@ export type Database = {
           ticket_price: number
           time: string
           updated_at: string
+          use_tickets: boolean
         }
         Insert: {
           allow_companions?: boolean
@@ -75,6 +76,7 @@ export type Database = {
           ticket_price?: number
           time?: string
           updated_at?: string
+          use_tickets?: boolean
         }
         Update: {
           allow_companions?: boolean
@@ -95,6 +97,7 @@ export type Database = {
           ticket_price?: number
           time?: string
           updated_at?: string
+          use_tickets?: boolean
         }
         Relationships: []
       }
