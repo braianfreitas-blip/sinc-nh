@@ -225,6 +225,17 @@ export default function TicketPage() {
           </div>
         </div>
 
+        <div className="flex gap-2 mt-4">
+          <Button onClick={handleDownloadPNG} disabled={!!downloading} variant="outline" className="flex-1">
+            <FileImage className="w-4 h-4 mr-2" />
+            {downloading === 'png' ? 'Gerando...' : 'Baixar PNG'}
+          </Button>
+          <Button onClick={handleDownloadPDF} disabled={!!downloading} variant="outline" className="flex-1">
+            <FileText className="w-4 h-4 mr-2" />
+            {downloading === 'pdf' ? 'Gerando...' : 'Baixar PDF'}
+          </Button>
+        </div>
+
         <p className="text-xs text-center text-muted-foreground mt-4">
           Salve este ingresso ou tire um print para apresentar na entrada
         </p>
