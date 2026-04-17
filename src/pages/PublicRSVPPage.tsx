@@ -136,6 +136,12 @@ export default function PublicRSVPPage() {
     ...(event.headerTextColor ? { color: event.headerTextColor } : {}),
   };
   const accentStyle: React.CSSProperties = event.primaryColor ? { color: event.primaryColor } : {};
+  const primaryBtnStyle: React.CSSProperties = event.primaryColor
+    ? { backgroundColor: event.primaryColor, color: '#fff', borderColor: event.primaryColor }
+    : {};
+  const outlinePrimaryStyle: React.CSSProperties = event.primaryColor
+    ? { borderColor: event.primaryColor, color: event.primaryColor }
+    : {};
   const cssVars = event.primaryColor
     ? ({ ['--brand-primary' as any]: event.primaryColor } as React.CSSProperties)
     : {};
