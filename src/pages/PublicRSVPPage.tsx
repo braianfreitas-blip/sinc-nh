@@ -303,7 +303,7 @@ export default function PublicRSVPPage() {
                     </div>
                   )}
                   {event.useTickets && (found!.presenceStatus === 'confirmed' || found!.presenceStatus === 'attended') && (
-                    <Button className="w-full" onClick={() => navigate(`/ticket/${found!.id}`)}>
+                    <Button className="w-full" style={primaryBtnStyle} onClick={() => navigate(`/ticket/${found!.id}`)}>
                       <Ticket className="w-4 h-4 mr-2" />Ver meu Ingresso
                     </Button>
                   )}
