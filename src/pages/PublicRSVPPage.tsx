@@ -335,7 +335,7 @@ export default function PublicRSVPPage() {
                   <div className="space-y-4">
                     <div><Label>Nome *</Label><Input value={lookupFirst} onChange={e => setLookupFirst(e.target.value)} placeholder="João" /></div>
                     <div><Label>Sobrenome *</Label><Input value={lookupLast} onChange={e => setLookupLast(e.target.value)} placeholder="Silva" /></div>
-                    <Button onClick={handleLookup} className="w-full h-12 text-base">
+                    <Button onClick={handleLookup} className="w-full h-12 text-base" style={primaryBtnStyle}>
                       <Search className="w-4 h-4 mr-2" />Buscar
                     </Button>
                   </div>
