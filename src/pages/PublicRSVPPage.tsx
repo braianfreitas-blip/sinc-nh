@@ -360,6 +360,11 @@ export default function PublicRSVPPage() {
                       )}
                     </div>
                   )}
+                  {event.useTickets && (
+                    <Button className="w-full" onClick={() => navigate(`/ticket/${lookupResult.id}`)}>
+                      <Ticket className="w-4 h-4 mr-2" />Ver meu Ingresso
+                    </Button>
+                  )}
                   {canCancel && (
                     <Button variant="destructive" className="w-full" onClick={handleLookupCancel}>
                       <XCircle className="w-4 h-4 mr-2" />Cancelar Presença
