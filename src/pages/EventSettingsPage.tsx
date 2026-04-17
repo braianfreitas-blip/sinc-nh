@@ -26,6 +26,7 @@ export default function EventSettingsPage() {
     cancellationDeadline: event.cancellationDeadline || '',
     headerTextColor: event.headerTextColor || '',
     pixKey: event.pixKey || '',
+    useTickets: event.useTickets || false,
   });
 
   const handleSave = () => {
@@ -123,6 +124,17 @@ export default function EventSettingsPage() {
         {form.allowCompanions && (
           <div><Label>Máximo de Acompanhantes por Convidado</Label><Input type="number" min={1} value={form.maxCompanions} onChange={e => update('maxCompanions', Number(e.target.value))} /></div>
         )}
+      </div>
+
+      <div className="bg-card rounded-xl border border-border p-6 shadow-card space-y-5">
+        <h3 className="font-display text-lg font-semibold">Ingressos</h3>
+        <div className="flex items-center justify-between">
+          <div>
+            <Label>Usar Ticket</Label>
+            <p className="text-xs text-muted-foreground">Gera um ingresso com QR Code para cada convidado e exige e-mail na confirmação</p>
+          </div>
+          <Switch checked={form.useTickets} onCheckedChange={v => update('useTickets', v)} />
+        </div>
       </div>
 
       <Button onClick={handleSave} className="w-full sm:w-auto"><Save className="w-4 h-4 mr-2" />Salvar Configurações</Button>
