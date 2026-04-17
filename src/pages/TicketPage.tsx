@@ -102,6 +102,68 @@ export default function TicketPage() {
   });
 
   const totalPeople = 1 + (guest.companions || 0);
+  const fileBase = `ingresso-${guest.first_name}-${guest.last_name}`.toLowerCase().replace(/\s+/g, '-');
+
+  const captureCanvas = async () => {
+    if (!ticketRef.current) return null;
+    return await html2canvas(ticketRef.current, {
+      backgroundColor: '#ffffff',
+      scale: 2,
+      useCORS: true,
+      logging: false,
+    });
+  };
+
+  const handleDownloadPNG = async () => {
+    setDownloading('png');
+    try {
+      const canvas = await captureCanvas();
+      if (!canvas) return;
+      const link = document.createElement('a');
+      link.download = `${fileBase}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      toast.success('Imagem baixada!');
+    } catch (e) {
+      console.error(e);
+      toast.error('Erro ao gerar imagem.');
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    setDownloading('pdf');
+    try {
+      const canvas = await captureCanvas();
+      if (!canvas) return;
+      const imgData = canvas.toDataURL('image/png');
+      // A4 portrait, mm
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 15;
+      const maxWidth = pageWidth - margin * 2;
+      const maxHeight = pageHeight - margin * 2;
+      const ratio = canvas.width / canvas.height;
+      let imgWidth = maxWidth;
+      let imgHeight = imgWidth / ratio;
+      if (imgHeight > maxHeight) {
+        imgHeight = maxHeight;
+        imgWidth = imgHeight * ratio;
+      }
+      const x = (pageWidth - imgWidth) / 2;
+      const y = (pageHeight - imgHeight) / 2;
+      pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
+      pdf.save(`${fileBase}.pdf`);
+      toast.success('PDF baixado!');
+    } catch (e) {
+      console.error(e);
+      toast.error('Erro ao gerar PDF.');
+    } finally {
+      setDownloading(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background py-8 px-4">
@@ -110,7 +172,7 @@ export default function TicketPage() {
           <Link to={`/event/${eventPath}`}><ArrowLeft className="w-4 h-4 mr-2" />Voltar ao evento</Link>
         </Button>
 
-        <div className="bg-card rounded-2xl border border-border shadow-elegant overflow-hidden">
+        <div ref={ticketRef} className="bg-card rounded-2xl border border-border shadow-elegant overflow-hidden">
           {/* Header */}
           <div className="gradient-primary text-primary-foreground p-6 text-center">
             <img src={sincLogo} alt="SINC" className="w-14 h-14 rounded-xl object-cover mx-auto mb-3" />
