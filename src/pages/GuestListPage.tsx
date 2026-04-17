@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Search, Plus, Download, Edit2, Trash2, CheckCircle, DollarSign, UserCheck, ShieldCheck } from 'lucide-react';
+import { Search, Plus, Download, Edit2, Trash2, CheckCircle, DollarSign, UserCheck, ShieldCheck, Ticket, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 function formatCurrency(v: number) {
