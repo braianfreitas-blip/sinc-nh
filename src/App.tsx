@@ -18,6 +18,7 @@ import CheckinPage from "./pages/CheckinPage";
 import EventSettingsPage from "./pages/EventSettingsPage";
 import InvitesPage from "./pages/InvitesPage";
 import EventsListPage from "./pages/EventsListPage";
+import TicketPage from "./pages/TicketPage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -66,6 +67,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/event/:eventId" element={<PublicEventRoute />} />
+            <Route path="/ticket/:guestId" element={<TicketPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/admin" element={<ProtectedRoute><EventsListPage /></ProtectedRoute>} />
