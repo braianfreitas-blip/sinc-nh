@@ -265,7 +265,7 @@ export default function PublicRSVPPage() {
                         {companions > 0 && <p className="text-xs text-muted-foreground">({1 + companions} pessoas)</p>}
                       </div>
                     )}
-                    <Button onClick={handleConfirm} className="w-full h-12 text-base">
+                    <Button onClick={handleConfirm} className="w-full h-12 text-base" style={primaryBtnStyle}>
                       {isFull ? 'Entrar na Lista de Espera' : 'Confirmar Presença'}
                     </Button>
                   </div>
