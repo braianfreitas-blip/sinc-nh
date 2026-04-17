@@ -195,12 +195,12 @@ export default function TicketPage() {
             <div className="space-y-2 text-muted-foreground">
               {event.date && (
                 <p className="flex items-center gap-2">
-                  <CalendarDays className="w-4 h-4 text-primary" />
+                  <CalendarDays className="w-4 h-4" style={accent} />
                   {new Date(event.date + 'T00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}
                 </p>
               )}
-              {event.time && <p className="flex items-center gap-2"><Clock className="w-4 h-4 text-primary" />{event.time}</p>}
-              {event.location && <p className="flex items-center gap-2"><MapPin className="w-4 h-4 text-primary" />{event.location}</p>}
+              {event.time && <p className="flex items-center gap-2"><Clock className="w-4 h-4" style={accent} />{event.time}</p>}
+              {event.location && <p className="flex items-center gap-2"><MapPin className="w-4 h-4" style={accent} />{event.location}</p>}
             </div>
 
             <div className="border-t border-dashed border-border pt-4">
