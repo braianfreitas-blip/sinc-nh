@@ -203,6 +203,7 @@ export default function PublicRSVPPage() {
           <Button
             variant={mode === 'confirm' ? 'default' : 'outline'}
             className="flex-1"
+            style={mode === 'confirm' ? primaryBtnStyle : outlinePrimaryStyle}
             onClick={() => { setMode('confirm'); resetLookup(); }}
           >
             Confirmar Presença
@@ -210,6 +211,7 @@ export default function PublicRSVPPage() {
           <Button
             variant={mode === 'manage' ? 'default' : 'outline'}
             className="flex-1"
+            style={mode === 'manage' ? primaryBtnStyle : outlinePrimaryStyle}
             onClick={() => { setMode('manage'); resetForm(); }}
           >
             <Search className="w-4 h-4 mr-2" />Desconfirmar
