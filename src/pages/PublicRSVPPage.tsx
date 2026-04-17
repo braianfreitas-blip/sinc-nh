@@ -287,7 +287,7 @@ export default function PublicRSVPPage() {
                       <p className="text-sm font-medium text-warning">Pagamento pendente</p>
                       <p className="text-2xl font-bold mt-1">{(found!.amountDue - found!.amountPaid).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
                       {event.pixKey && (
-                        <Button className="mt-3 w-full" onClick={() => {
+                        <Button className="mt-3 w-full" style={primaryBtnStyle} onClick={() => {
                           navigator.clipboard.writeText(event.pixKey!);
                           toast.success('Chave PIX copiada! Cole no app do seu banco para pagar.');
                         }}>
