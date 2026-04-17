@@ -392,7 +392,7 @@ export default function PublicRSVPPage() {
                     </div>
                   )}
                   {event.useTickets && (
-                    <Button className="w-full" onClick={() => navigate(`/ticket/${lookupResult.id}`)}>
+                    <Button className="w-full" style={primaryBtnStyle} onClick={() => navigate(`/ticket/${lookupResult.id}`)}>
                       <Ticket className="w-4 h-4 mr-2" />Ver meu Ingresso
                     </Button>
                   )}
