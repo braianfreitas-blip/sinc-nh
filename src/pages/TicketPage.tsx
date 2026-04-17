@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { CalendarDays, Clock, MapPin, Ticket, ArrowLeft, Users, CheckCircle2, Download, FileImage, FileText } from 'lucide-react';
+import { CalendarDays, Clock, MapPin, Ticket, ArrowLeft, Users, CheckCircle2, FileImage, FileText } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { toast } from 'sonner';
