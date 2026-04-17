@@ -50,6 +50,7 @@ export interface EventData {
   cancellationDeadline?: string;
   headerTextColor?: string;
   pixKey?: string;
+  useTickets: boolean;
   guests: Guest[];
   payments: PaymentRecord[];
   createdAt: string;
