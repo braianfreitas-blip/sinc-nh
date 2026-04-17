@@ -107,6 +107,10 @@ function mapEvent(row: any): Omit<EventData, 'guests' | 'payments'> {
     maxCompanions: row.max_companions,
     cancellationDeadline: row.cancellation_deadline || undefined,
     headerTextColor: row.header_text_color || undefined,
+    headerBgColor: row.header_bg_color || undefined,
+    primaryColor: row.primary_color || undefined,
+    logoUrl: row.logo_url || undefined,
+    coverUrl: row.cover_url || undefined,
     useTickets: row.use_tickets ?? false,
     createdAt: row.created_at,
   };
@@ -172,6 +176,10 @@ export function EventProvider({ children, eventId }: { children: React.ReactNode
     if (data.maxCompanions !== undefined) dbData.max_companions = data.maxCompanions;
     if (data.cancellationDeadline !== undefined) dbData.cancellation_deadline = data.cancellationDeadline || null;
     if (data.headerTextColor !== undefined) dbData.header_text_color = data.headerTextColor || null;
+    if (data.headerBgColor !== undefined) dbData.header_bg_color = data.headerBgColor || null;
+    if (data.primaryColor !== undefined) dbData.primary_color = data.primaryColor || null;
+    if (data.logoUrl !== undefined) dbData.logo_url = data.logoUrl || null;
+    if (data.coverUrl !== undefined) dbData.cover_url = data.coverUrl || null;
     if (data.useTickets !== undefined) dbData.use_tickets = data.useTickets;
 
     if (Object.keys(dbData).length > 0) {

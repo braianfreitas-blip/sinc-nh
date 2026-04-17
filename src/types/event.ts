@@ -49,6 +49,10 @@ export interface EventData {
   maxCompanions: number;
   cancellationDeadline?: string;
   headerTextColor?: string;
+  headerBgColor?: string;
+  primaryColor?: string;
+  logoUrl?: string;
+  coverUrl?: string;
   pixKey?: string;
   useTickets: boolean;
   guests: Guest[];
