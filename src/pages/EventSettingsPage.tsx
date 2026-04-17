@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { Save, MapPin, Navigation } from 'lucide-react';
+import { Save, MapPin, Navigation, Palette } from 'lucide-react';
+import EventImageUpload from '@/components/EventImageUpload';
 
 export default function EventSettingsPage() {
   const { event, updateEvent } = useEvent();
@@ -25,6 +26,10 @@ export default function EventSettingsPage() {
     maxCompanions: event.maxCompanions,
     cancellationDeadline: event.cancellationDeadline || '',
     headerTextColor: event.headerTextColor || '',
+    headerBgColor: event.headerBgColor || '',
+    primaryColor: event.primaryColor || '',
+    logoUrl: event.logoUrl as string | undefined,
+    coverUrl: event.coverUrl as string | undefined,
     pixKey: event.pixKey || '',
     useTickets: event.useTickets || false,
   });
@@ -36,6 +41,12 @@ export default function EventSettingsPage() {
   };
 
   const update = (key: string, value: any) => setForm(prev => ({ ...prev, [key]: value }));
+
+  // Persist image URL immediately so user doesn't lose it if they navigate away
+  const handleImageChange = (key: 'logoUrl' | 'coverUrl', url: string | undefined) => {
+    update(key, url);
+    updateEvent({ [key]: url });
+  };
 
   return (
     <div className="space-y-6 max-w-2xl">
