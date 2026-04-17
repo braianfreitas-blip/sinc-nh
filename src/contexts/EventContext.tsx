@@ -16,6 +16,7 @@ const DEFAULT_EVENT: EventData = {
   maxGuests: 100,
   allowCompanions: false,
   maxCompanions: 1,
+  useTickets: false,
   guests: [],
   payments: [],
   createdAt: new Date().toISOString(),
@@ -106,6 +107,7 @@ function mapEvent(row: any): Omit<EventData, 'guests' | 'payments'> {
     maxCompanions: row.max_companions,
     cancellationDeadline: row.cancellation_deadline || undefined,
     headerTextColor: row.header_text_color || undefined,
+    useTickets: row.use_tickets ?? false,
     createdAt: row.created_at,
   };
 }
@@ -170,6 +172,7 @@ export function EventProvider({ children, eventId }: { children: React.ReactNode
     if (data.maxCompanions !== undefined) dbData.max_companions = data.maxCompanions;
     if (data.cancellationDeadline !== undefined) dbData.cancellation_deadline = data.cancellationDeadline || null;
     if (data.headerTextColor !== undefined) dbData.header_text_color = data.headerTextColor || null;
+    if (data.useTickets !== undefined) dbData.use_tickets = data.useTickets;
 
     if (Object.keys(dbData).length > 0) {
       const realId = event.id;

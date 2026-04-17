@@ -1,18 +1,20 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useEvent } from '@/contexts/EventContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { MapPin, Clock, CheckCircle2, AlertCircle, Users, CalendarDays, XCircle, Search, CreditCard, Navigation2 } from 'lucide-react';
+import { MapPin, Clock, CheckCircle2, AlertCircle, Users, CalendarDays, XCircle, Search, CreditCard, Navigation2, Ticket } from 'lucide-react';
 import { PAYMENT_LABELS } from '@/types/event';
 import { toast } from 'sonner';
 import sincLogo from '@/assets/sinc-logo.png';
 
 export default function PublicRSVPPage() {
   const { event, findGuestByName, addGuest, updateGuest } = useEvent();
+  const navigate = useNavigate();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
   const [companions, setCompanions] = useState(0);
   const [invitedBy, setInvitedBy] = useState('');
   const [found, setFound] = useState<ReturnType<typeof findGuestByName> | null>(null);
@@ -35,6 +37,13 @@ export default function PublicRSVPPage() {
       toast.error('Informe nome e sobrenome.');
       return;
     }
+    if (event.useTickets) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!email.trim() || !emailRegex.test(email.trim())) {
+        toast.error('Informe um e-mail válido para emissão do ingresso.');
+        return;
+      }
+    }
     const existing = findGuestByName(firstName.trim(), lastName.trim());
     if (existing) {
       const status = isFull ? 'waitlist' : 'confirmed';
@@ -44,14 +53,16 @@ export default function PublicRSVPPage() {
         companions: event.allowCompanions ? companions : 0,
         amountDue: event.isPaid ? event.ticketPrice * (1 + (event.allowCompanions ? companions : 0)) : 0,
         invitedBy: invitedBy.trim(),
+        email: event.useTickets ? email.trim() : existing.email,
       });
-      setFound({ ...existing, presenceStatus: status, confirmedAt: new Date().toISOString() });
+      setFound({ ...existing, presenceStatus: status, confirmedAt: new Date().toISOString(), email: event.useTickets ? email.trim() : existing.email });
       toast.success(status === 'waitlist' ? 'Adicionado à lista de espera!' : 'Presença confirmada!');
     } else {
       const status = isFull ? 'waitlist' : 'confirmed';
       const guest = addGuest({
         firstName: firstName.trim(),
         lastName: lastName.trim(),
+        email: event.useTickets ? email.trim() : undefined,
         presenceStatus: status,
         paymentStatus: event.isPaid ? 'pending' : 'not_applicable',
         amountDue: event.isPaid ? event.ticketPrice * (1 + (event.allowCompanions ? companions : 0)) : 0,
@@ -85,6 +96,7 @@ export default function PublicRSVPPage() {
   const resetForm = () => {
     setFirstName('');
     setLastName('');
+    setEmail('');
     setCompanions(0);
     setInvitedBy('');
     setFound(null);
@@ -199,6 +211,13 @@ export default function PublicRSVPPage() {
                   <div className="space-y-4">
                     <div><Label>Nome *</Label><Input value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="João" /></div>
                     <div><Label>Sobrenome *</Label><Input value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Silva" /></div>
+                    {event.useTickets && (
+                      <div>
+                        <Label>E-mail *</Label>
+                        <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com" />
+                        <p className="text-xs text-muted-foreground mt-1">Necessário para emissão do seu ingresso</p>
+                      </div>
+                    )}
                     <div><Label>Quem te convidou?</Label><Input value={invitedBy} onChange={e => setInvitedBy(e.target.value)} placeholder="Nome de quem convidou" /></div>
                     {event.allowCompanions && (
                       <div>
@@ -251,6 +270,11 @@ export default function PublicRSVPPage() {
                     <div className="bg-success/10 rounded-lg p-4 mt-4">
                       <p className="text-sm font-medium text-success">✓ Pagamento aprovado</p>
                     </div>
+                  )}
+                  {event.useTickets && (found!.presenceStatus === 'confirmed' || found!.presenceStatus === 'attended') && (
+                    <Button className="w-full" onClick={() => navigate(`/ticket/${found!.id}`)}>
+                      <Ticket className="w-4 h-4 mr-2" />Ver meu Ingresso
+                    </Button>
                   )}
                   {canCancel && (
                     <Button variant="destructive" className="w-full" onClick={handleUnconfirm}>
@@ -335,6 +359,11 @@ export default function PublicRSVPPage() {
                         <p className="text-sm text-success mt-1">✓ Pagamento confirmado</p>
                       )}
                     </div>
+                  )}
+                  {event.useTickets && (
+                    <Button className="w-full" onClick={() => navigate(`/ticket/${lookupResult.id}`)}>
+                      <Ticket className="w-4 h-4 mr-2" />Ver meu Ingresso
+                    </Button>
                   )}
                   {canCancel && (
                     <Button variant="destructive" className="w-full" onClick={handleLookupCancel}>
