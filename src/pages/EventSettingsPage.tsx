@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { Save, MapPin, Navigation } from 'lucide-react';
+import { Save, MapPin, Navigation, Palette } from 'lucide-react';
+import EventImageUpload from '@/components/EventImageUpload';
 
 export default function EventSettingsPage() {
   const { event, updateEvent } = useEvent();
@@ -25,6 +26,10 @@ export default function EventSettingsPage() {
     maxCompanions: event.maxCompanions,
     cancellationDeadline: event.cancellationDeadline || '',
     headerTextColor: event.headerTextColor || '',
+    headerBgColor: event.headerBgColor || '',
+    primaryColor: event.primaryColor || '',
+    logoUrl: event.logoUrl as string | undefined,
+    coverUrl: event.coverUrl as string | undefined,
     pixKey: event.pixKey || '',
     useTickets: event.useTickets || false,
   });
@@ -36,6 +41,12 @@ export default function EventSettingsPage() {
   };
 
   const update = (key: string, value: any) => setForm(prev => ({ ...prev, [key]: value }));
+
+  // Persist image URL immediately so user doesn't lose it if they navigate away
+  const handleImageChange = (key: 'logoUrl' | 'coverUrl', url: string | undefined) => {
+    update(key, url);
+    updateEvent({ [key]: url });
+  };
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -83,16 +94,149 @@ export default function EventSettingsPage() {
         <div><Label>Descrição</Label><Textarea value={form.description} onChange={e => update('description', e.target.value)} rows={3} /></div>
         <div><Label>Limite de Convidados</Label><Input type="number" value={form.maxGuests} onChange={e => update('maxGuests', Number(e.target.value))} /></div>
         <div><Label>Data Limite para Cancelamento</Label><Input type="date" value={form.cancellationDeadline} onChange={e => update('cancellationDeadline', e.target.value)} /><p className="text-xs text-muted-foreground mt-1">Convidados podem desconfirmar até esta data</p></div>
-        <div>
-          <Label>Cor do Texto do Header (Página Pública)</Label>
-          <div className="flex items-center gap-3 mt-1">
-            <input type="color" value={form.headerTextColor || '#ffffff'} onChange={e => update('headerTextColor', e.target.value)} className="w-10 h-10 rounded border border-border cursor-pointer" />
-            <Input value={form.headerTextColor} onChange={e => update('headerTextColor', e.target.value)} placeholder="#ffffff" className="max-w-[150px]" />
-            {form.headerTextColor && <Button variant="ghost" size="sm" onClick={() => update('headerTextColor', '')}>Resetar</Button>}
+      </div>
+
+      {/* Identidade Visual */}
+      <div className="bg-card rounded-xl border border-border p-6 shadow-card space-y-6">
+        <div className="flex items-center gap-2">
+          <Palette className="w-5 h-5 text-primary" />
+          <h3 className="font-display text-lg font-semibold">Identidade Visual</h3>
+        </div>
+        <p className="text-xs text-muted-foreground -mt-3">
+          Personalize a aparência das páginas públicas (RSVP e ingresso) deste evento. Se nada for definido, usamos a identidade SINC padrão.
+        </p>
+
+        <div className="grid sm:grid-cols-2 gap-6">
+          <div>
+            <Label className="mb-2 block">Logo do evento</Label>
+            <EventImageUpload
+              value={form.logoUrl}
+              onChange={url => handleImageChange('logoUrl', url)}
+              eventId={event.id}
+              kind="logo"
+              aspect="square"
+              hint="Quadrado, mín. 200×200px. Aparece no topo do RSVP e do ingresso."
+            />
           </div>
-          <p className="text-xs text-muted-foreground mt-1">Cor do título e data de confirmação no topo da página pública</p>
+          <div>
+            <Label className="mb-2 block">Imagem de capa / banner</Label>
+            <EventImageUpload
+              value={form.coverUrl}
+              onChange={url => handleImageChange('coverUrl', url)}
+              eventId={event.id}
+              kind="cover"
+              aspect="wide"
+              hint="Banner amplo (3:1). Aparece no topo da página de RSVP."
+            />
+          </div>
+        </div>
+
+        <div className="grid sm:grid-cols-3 gap-4">
+          <div>
+            <Label>Cor primária (destaque)</Label>
+            <div className="flex items-center gap-2 mt-1">
+              <input
+                type="color"
+                value={form.primaryColor || '#39FF14'}
+                onChange={e => update('primaryColor', e.target.value)}
+                className="w-10 h-10 rounded border border-border cursor-pointer shrink-0"
+              />
+              <Input
+                value={form.primaryColor}
+                onChange={e => update('primaryColor', e.target.value)}
+                placeholder="#39FF14"
+              />
+              {form.primaryColor && (
+                <Button variant="ghost" size="icon" onClick={() => update('primaryColor', '')} title="Resetar">
+                  ×
+                </Button>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Botões e ícones de destaque</p>
+          </div>
+
+          <div>
+            <Label>Fundo do cabeçalho</Label>
+            <div className="flex items-center gap-2 mt-1">
+              <input
+                type="color"
+                value={form.headerBgColor || '#0a0a0a'}
+                onChange={e => update('headerBgColor', e.target.value)}
+                className="w-10 h-10 rounded border border-border cursor-pointer shrink-0"
+              />
+              <Input
+                value={form.headerBgColor}
+                onChange={e => update('headerBgColor', e.target.value)}
+                placeholder="#0a0a0a"
+              />
+              {form.headerBgColor && (
+                <Button variant="ghost" size="icon" onClick={() => update('headerBgColor', '')} title="Resetar">
+                  ×
+                </Button>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Topo do RSVP e do ingresso</p>
+          </div>
+
+          <div>
+            <Label>Cor do texto do cabeçalho</Label>
+            <div className="flex items-center gap-2 mt-1">
+              <input
+                type="color"
+                value={form.headerTextColor || '#ffffff'}
+                onChange={e => update('headerTextColor', e.target.value)}
+                className="w-10 h-10 rounded border border-border cursor-pointer shrink-0"
+              />
+              <Input
+                value={form.headerTextColor}
+                onChange={e => update('headerTextColor', e.target.value)}
+                placeholder="#ffffff"
+              />
+              {form.headerTextColor && (
+                <Button variant="ghost" size="icon" onClick={() => update('headerTextColor', '')} title="Resetar">
+                  ×
+                </Button>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Título e datas no topo</p>
+          </div>
+        </div>
+
+        {/* Preview */}
+        <div>
+          <Label className="mb-2 block">Pré-visualização</Label>
+          <div
+            className="rounded-xl overflow-hidden border border-border"
+            style={{
+              background: form.headerBgColor || undefined,
+              color: form.headerTextColor || undefined,
+            }}
+          >
+            {form.coverUrl && (
+              <div className="aspect-[3/1] w-full overflow-hidden">
+                <img src={form.coverUrl} alt="" className="w-full h-full object-cover" />
+              </div>
+            )}
+            <div className="p-6 text-center">
+              {form.logoUrl && (
+                <img src={form.logoUrl} alt="" className="w-16 h-16 rounded-xl object-cover mx-auto mb-3" />
+              )}
+              <h4 className="font-display text-2xl font-bold">{form.name || 'Nome do evento'}</h4>
+              <button
+                type="button"
+                className="mt-4 px-5 py-2 rounded-lg font-medium text-sm"
+                style={{
+                  background: form.primaryColor || 'hsl(var(--primary))',
+                  color: '#000',
+                }}
+              >
+                Confirmar Presença
+              </button>
+            </div>
+          </div>
         </div>
       </div>
+
 
       <div className="bg-card rounded-xl border border-border p-6 shadow-card space-y-5">
         <h3 className="font-display text-lg font-semibold">Pagamento</h3>

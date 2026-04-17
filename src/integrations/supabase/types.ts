@@ -39,17 +39,21 @@ export type Database = {
         Row: {
           allow_companions: boolean
           cancellation_deadline: string | null
+          cover_url: string | null
           created_at: string
           date: string
           description: string
+          header_bg_color: string | null
           header_text_color: string | null
           id: string
           is_paid: boolean
           location: string
+          logo_url: string | null
           max_companions: number
           max_guests: number
           name: string
           pix_key: string | null
+          primary_color: string | null
           slug: string | null
           ticket_label: string
           ticket_price: number
@@ -60,17 +64,21 @@ export type Database = {
         Insert: {
           allow_companions?: boolean
           cancellation_deadline?: string | null
+          cover_url?: string | null
           created_at?: string
           date?: string
           description?: string
+          header_bg_color?: string | null
           header_text_color?: string | null
           id?: string
           is_paid?: boolean
           location?: string
+          logo_url?: string | null
           max_companions?: number
           max_guests?: number
           name?: string
           pix_key?: string | null
+          primary_color?: string | null
           slug?: string | null
           ticket_label?: string
           ticket_price?: number
@@ -81,17 +89,21 @@ export type Database = {
         Update: {
           allow_companions?: boolean
           cancellation_deadline?: string | null
+          cover_url?: string | null
           created_at?: string
           date?: string
           description?: string
+          header_bg_color?: string | null
           header_text_color?: string | null
           id?: string
           is_paid?: boolean
           location?: string
+          logo_url?: string | null
           max_companions?: number
           max_guests?: number
           name?: string
           pix_key?: string | null
+          primary_color?: string | null
           slug?: string | null
           ticket_label?: string
           ticket_price?: number

@@ -131,15 +131,38 @@ export default function PublicRSVPPage() {
     setLookupSearched(false);
   };
 
+  const headerStyle: React.CSSProperties = {
+    ...(event.headerBgColor ? { background: event.headerBgColor } : {}),
+    ...(event.headerTextColor ? { color: event.headerTextColor } : {}),
+  };
+  const accentStyle: React.CSSProperties = event.primaryColor ? { color: event.primaryColor } : {};
+  const cssVars = event.primaryColor
+    ? ({ ['--brand-primary' as any]: event.primaryColor } as React.CSSProperties)
+    : {};
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" style={cssVars}>
+      {/* Cover banner */}
+      {event.coverUrl && (
+        <div className="w-full aspect-[3/1] sm:aspect-[4/1] overflow-hidden">
+          <img src={event.coverUrl} alt={event.name} className="w-full h-full object-cover" />
+        </div>
+      )}
+
       {/* Hero */}
-      <div className="gradient-primary text-primary-foreground py-16 px-4">
+      <div
+        className={event.headerBgColor ? 'py-16 px-4' : 'gradient-primary text-primary-foreground py-16 px-4'}
+        style={headerStyle}
+      >
         <div className="max-w-lg mx-auto text-center">
-          <img src={sincLogo} alt="SINC" className="w-20 h-20 rounded-2xl object-cover mx-auto mb-6" />
+          <img
+            src={event.logoUrl || sincLogo}
+            alt={event.name || 'Logo'}
+            className="w-20 h-20 rounded-2xl object-cover mx-auto mb-6"
+          />
           <h1 className="font-display text-4xl font-bold mb-4" style={event.headerTextColor ? { color: event.headerTextColor } : undefined}>{event.name || 'Evento'}</h1>
-          {event.description && <p className="text-primary-foreground/80 mb-6" style={event.headerTextColor ? { color: event.headerTextColor, opacity: 0.8 } : undefined}>{event.description}</p>}
-          <div className="flex flex-wrap justify-center gap-4 text-sm text-primary-foreground/70" style={event.headerTextColor ? { color: event.headerTextColor, opacity: 0.7 } : undefined}>
+          {event.description && <p className="mb-6 opacity-80" style={event.headerTextColor ? { color: event.headerTextColor, opacity: 0.85 } : undefined}>{event.description}</p>}
+          <div className="flex flex-wrap justify-center gap-4 text-sm opacity-80" style={event.headerTextColor ? { color: event.headerTextColor, opacity: 0.85 } : undefined}>
             {event.date && (
               <span className="flex items-center gap-1">
                 <CalendarDays className="w-4 h-4" />
@@ -151,10 +174,10 @@ export default function PublicRSVPPage() {
               <span className="flex items-center gap-1 flex-wrap">
                 <MapPin className="w-4 h-4" />{event.location}
                 <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`} target="_blank" rel="noopener noreferrer" className="ml-2 inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors" title="Google Maps">
-                  <MapPin className="w-3.5 h-3.5 text-primary" />
+                  <MapPin className="w-3.5 h-3.5" style={accentStyle} />
                 </a>
                 <a href={`https://waze.com/ul?q=${encodeURIComponent(event.location)}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors" title="Waze">
-                  <Navigation2 className="w-3.5 h-3.5 text-primary" />
+                  <Navigation2 className="w-3.5 h-3.5" style={accentStyle} />
                 </a>
               </span>
             )}

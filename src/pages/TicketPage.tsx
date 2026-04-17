@@ -30,6 +30,10 @@ interface TicketData {
     is_paid: boolean;
     ticket_label: string;
     use_tickets: boolean;
+    logo_url: string | null;
+    header_bg_color: string | null;
+    header_text_color: string | null;
+    primary_color: string | null;
   };
 }
 
@@ -103,6 +107,7 @@ export default function TicketPage() {
 
   const totalPeople = 1 + (guest.companions || 0);
   const fileBase = `ingresso-${guest.first_name}-${guest.last_name}`.toLowerCase().replace(/\s+/g, '-');
+  const accent: React.CSSProperties = event.primary_color ? { color: event.primary_color } : { color: 'hsl(var(--primary))' };
 
   const captureCanvas = async () => {
     if (!ticketRef.current) return null;
@@ -174,8 +179,14 @@ export default function TicketPage() {
 
         <div ref={ticketRef} className="bg-card rounded-2xl border border-border shadow-elegant overflow-hidden">
           {/* Header */}
-          <div className="gradient-primary text-primary-foreground p-6 text-center">
-            <img src={sincLogo} alt="SINC" className="w-14 h-14 rounded-xl object-cover mx-auto mb-3" />
+          <div
+            className={event.header_bg_color ? 'p-6 text-center' : 'gradient-primary text-primary-foreground p-6 text-center'}
+            style={{
+              ...(event.header_bg_color ? { background: event.header_bg_color } : {}),
+              ...(event.header_text_color ? { color: event.header_text_color } : {}),
+            }}
+          >
+            <img src={event.logo_url || sincLogo} alt={event.name} className="w-14 h-14 rounded-xl object-cover mx-auto mb-3" />
             <p className="text-xs uppercase tracking-wider opacity-80">Ingresso</p>
             <h1 className="font-display text-2xl font-bold mt-1">{event.name}</h1>
           </div>
@@ -185,12 +196,12 @@ export default function TicketPage() {
             <div className="space-y-2 text-muted-foreground">
               {event.date && (
                 <p className="flex items-center gap-2">
-                  <CalendarDays className="w-4 h-4 text-primary" />
+                  <CalendarDays className="w-4 h-4" style={accent} />
                   {new Date(event.date + 'T00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}
                 </p>
               )}
-              {event.time && <p className="flex items-center gap-2"><Clock className="w-4 h-4 text-primary" />{event.time}</p>}
-              {event.location && <p className="flex items-center gap-2"><MapPin className="w-4 h-4 text-primary" />{event.location}</p>}
+              {event.time && <p className="flex items-center gap-2"><Clock className="w-4 h-4" style={accent} />{event.time}</p>}
+              {event.location && <p className="flex items-center gap-2"><MapPin className="w-4 h-4" style={accent} />{event.location}</p>}
             </div>
 
             <div className="border-t border-dashed border-border pt-4">
