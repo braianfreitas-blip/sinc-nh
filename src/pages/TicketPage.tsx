@@ -30,6 +30,10 @@ interface TicketData {
     is_paid: boolean;
     ticket_label: string;
     use_tickets: boolean;
+    logo_url: string | null;
+    header_bg_color: string | null;
+    header_text_color: string | null;
+    primary_color: string | null;
   };
 }
 
@@ -174,8 +178,14 @@ export default function TicketPage() {
 
         <div ref={ticketRef} className="bg-card rounded-2xl border border-border shadow-elegant overflow-hidden">
           {/* Header */}
-          <div className="gradient-primary text-primary-foreground p-6 text-center">
-            <img src={sincLogo} alt="SINC" className="w-14 h-14 rounded-xl object-cover mx-auto mb-3" />
+          <div
+            className={event.header_bg_color ? 'p-6 text-center' : 'gradient-primary text-primary-foreground p-6 text-center'}
+            style={{
+              ...(event.header_bg_color ? { background: event.header_bg_color } : {}),
+              ...(event.header_text_color ? { color: event.header_text_color } : {}),
+            }}
+          >
+            <img src={event.logo_url || sincLogo} alt={event.name} className="w-14 h-14 rounded-xl object-cover mx-auto mb-3" />
             <p className="text-xs uppercase tracking-wider opacity-80">Ingresso</p>
             <h1 className="font-display text-2xl font-bold mt-1">{event.name}</h1>
           </div>
