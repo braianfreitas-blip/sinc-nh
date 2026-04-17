@@ -139,6 +139,18 @@ export default function GuestListPage() {
                       updateGuest(g.id, { checkedIn: true, checkedInAt: new Date().toISOString(), presenceStatus: 'attended' });
                       toast.success('Check-in realizado!');
                     }} title="Check-in"><UserCheck className="w-4 h-4 text-info" /></Button>
+                    {event.useTickets && (g.presenceStatus === 'confirmed' || g.presenceStatus === 'attended') && (!event.isPaid || g.paymentStatus === 'paid') && (
+                      <>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
+                          window.open(`/ticket/${g.id}`, '_blank');
+                        }} title="Ver ingresso"><Ticket className="w-4 h-4 text-primary" /></Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
+                          const url = `${window.location.origin}/ticket/${g.id}`;
+                          navigator.clipboard.writeText(url);
+                          toast.success('Link do ingresso copiado!');
+                        }} title="Copiar link do ingresso"><Link2 className="w-4 h-4 text-primary" /></Button>
+                      </>
+                    )}
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditGuest(g)} title="Editar">
                       <Edit2 className="w-4 h-4" />
                     </Button>
