@@ -107,6 +107,7 @@ export default function TicketPage() {
 
   const totalPeople = 1 + (guest.companions || 0);
   const fileBase = `ingresso-${guest.first_name}-${guest.last_name}`.toLowerCase().replace(/\s+/g, '-');
+  const accent: React.CSSProperties = event.primary_color ? { color: event.primary_color } : { color: 'hsl(var(--primary))' };
 
   const captureCanvas = async () => {
     if (!ticketRef.current) return null;
