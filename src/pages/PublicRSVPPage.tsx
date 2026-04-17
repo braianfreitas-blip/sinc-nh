@@ -136,6 +136,12 @@ export default function PublicRSVPPage() {
     ...(event.headerTextColor ? { color: event.headerTextColor } : {}),
   };
   const accentStyle: React.CSSProperties = event.primaryColor ? { color: event.primaryColor } : {};
+  const primaryBtnStyle: React.CSSProperties = event.primaryColor
+    ? { backgroundColor: event.primaryColor, color: '#fff', borderColor: event.primaryColor }
+    : {};
+  const outlinePrimaryStyle: React.CSSProperties = event.primaryColor
+    ? { borderColor: event.primaryColor, color: event.primaryColor }
+    : {};
   const cssVars = event.primaryColor
     ? ({ ['--brand-primary' as any]: event.primaryColor } as React.CSSProperties)
     : {};
@@ -197,6 +203,7 @@ export default function PublicRSVPPage() {
           <Button
             variant={mode === 'confirm' ? 'default' : 'outline'}
             className="flex-1"
+            style={mode === 'confirm' ? primaryBtnStyle : outlinePrimaryStyle}
             onClick={() => { setMode('confirm'); resetLookup(); }}
           >
             Confirmar Presença
@@ -204,6 +211,7 @@ export default function PublicRSVPPage() {
           <Button
             variant={mode === 'manage' ? 'default' : 'outline'}
             className="flex-1"
+            style={mode === 'manage' ? primaryBtnStyle : outlinePrimaryStyle}
             onClick={() => { setMode('manage'); resetForm(); }}
           >
             <Search className="w-4 h-4 mr-2" />Desconfirmar
@@ -257,7 +265,7 @@ export default function PublicRSVPPage() {
                         {companions > 0 && <p className="text-xs text-muted-foreground">({1 + companions} pessoas)</p>}
                       </div>
                     )}
-                    <Button onClick={handleConfirm} className="w-full h-12 text-base">
+                    <Button onClick={handleConfirm} className="w-full h-12 text-base" style={primaryBtnStyle}>
                       {isFull ? 'Entrar na Lista de Espera' : 'Confirmar Presença'}
                     </Button>
                   </div>
@@ -279,7 +287,7 @@ export default function PublicRSVPPage() {
                       <p className="text-sm font-medium text-warning">Pagamento pendente</p>
                       <p className="text-2xl font-bold mt-1">{(found!.amountDue - found!.amountPaid).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
                       {event.pixKey && (
-                        <Button className="mt-3 w-full" onClick={() => {
+                        <Button className="mt-3 w-full" style={primaryBtnStyle} onClick={() => {
                           navigator.clipboard.writeText(event.pixKey!);
                           toast.success('Chave PIX copiada! Cole no app do seu banco para pagar.');
                         }}>
@@ -295,7 +303,7 @@ export default function PublicRSVPPage() {
                     </div>
                   )}
                   {event.useTickets && (found!.presenceStatus === 'confirmed' || found!.presenceStatus === 'attended') && (
-                    <Button className="w-full" onClick={() => navigate(`/ticket/${found!.id}`)}>
+                    <Button className="w-full" style={primaryBtnStyle} onClick={() => navigate(`/ticket/${found!.id}`)}>
                       <Ticket className="w-4 h-4 mr-2" />Ver meu Ingresso
                     </Button>
                   )}
@@ -327,7 +335,7 @@ export default function PublicRSVPPage() {
                   <div className="space-y-4">
                     <div><Label>Nome *</Label><Input value={lookupFirst} onChange={e => setLookupFirst(e.target.value)} placeholder="João" /></div>
                     <div><Label>Sobrenome *</Label><Input value={lookupLast} onChange={e => setLookupLast(e.target.value)} placeholder="Silva" /></div>
-                    <Button onClick={handleLookup} className="w-full h-12 text-base">
+                    <Button onClick={handleLookup} className="w-full h-12 text-base" style={primaryBtnStyle}>
                       <Search className="w-4 h-4 mr-2" />Buscar
                     </Button>
                   </div>
@@ -368,7 +376,7 @@ export default function PublicRSVPPage() {
                             {(lookupResult.amountDue - lookupResult.amountPaid).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                           </p>
                           {event.pixKey && (
-                            <Button className="mt-3 w-full" onClick={() => {
+                            <Button className="mt-3 w-full" style={primaryBtnStyle} onClick={() => {
                               navigator.clipboard.writeText(event.pixKey!);
                               toast.success('Chave PIX copiada! Cole no app do seu banco para pagar.');
                             }}>
@@ -384,7 +392,7 @@ export default function PublicRSVPPage() {
                     </div>
                   )}
                   {event.useTickets && (
-                    <Button className="w-full" onClick={() => navigate(`/ticket/${lookupResult.id}`)}>
+                    <Button className="w-full" style={primaryBtnStyle} onClick={() => navigate(`/ticket/${lookupResult.id}`)}>
                       <Ticket className="w-4 h-4 mr-2" />Ver meu Ingresso
                     </Button>
                   )}
