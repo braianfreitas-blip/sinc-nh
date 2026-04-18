@@ -178,6 +178,17 @@ export default function TicketPage() {
         </Button>
 
         <div ref={ticketRef} className="bg-card rounded-2xl border border-border shadow-elegant overflow-hidden">
+          {/* Cover/Banner */}
+          {event.cover_url && (
+            <div className="w-full aspect-[16/9] overflow-hidden bg-muted">
+              <img
+                src={event.cover_url}
+                alt={`Capa do evento ${event.name}`}
+                className="w-full h-full object-cover"
+                crossOrigin="anonymous"
+              />
+            </div>
+          )}
           {/* Header */}
           <div
             className={event.header_bg_color ? 'p-6 text-center' : 'gradient-primary text-primary-foreground p-6 text-center'}
