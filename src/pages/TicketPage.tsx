@@ -31,6 +31,7 @@ interface TicketData {
     ticket_label: string;
     use_tickets: boolean;
     logo_url: string | null;
+    cover_url: string | null;
     header_bg_color: string | null;
     header_text_color: string | null;
     primary_color: string | null;
