@@ -171,6 +171,25 @@ export default function TicketPage() {
     }
   };
 
+  const handleShareWhatsApp = () => {
+    const url = window.location.href;
+    const dateStr = event.date
+      ? new Date(event.date + 'T00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
+      : '';
+    const lines = [
+      `🎟️ *Meu ingresso para ${event.name}*`,
+      '',
+      `👤 ${guest.first_name} ${guest.last_name}`,
+      dateStr && `📅 ${dateStr}${event.time ? ` às ${event.time}` : ''}`,
+      event.location && `📍 ${event.location}`,
+      totalPeople > 1 && `👥 ${totalPeople} pessoas`,
+      '',
+      `Acesse: ${url}`,
+    ].filter(Boolean).join('\n');
+    const waUrl = `https://wa.me/?text=${encodeURIComponent(lines)}`;
+    window.open(waUrl, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <div className="min-h-screen bg-background py-8 px-4">
       <div className="max-w-md mx-auto">
