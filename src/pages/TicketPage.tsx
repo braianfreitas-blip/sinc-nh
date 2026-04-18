@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { CalendarDays, Clock, MapPin, Ticket, ArrowLeft, Users, CheckCircle2, FileImage, FileText } from 'lucide-react';
+import { CalendarDays, Clock, MapPin, Ticket, ArrowLeft, Users, CheckCircle2, FileImage, FileText, Share2 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { toast } from 'sonner';
@@ -171,6 +171,25 @@ export default function TicketPage() {
     }
   };
 
+  const handleShareWhatsApp = () => {
+    const url = window.location.href;
+    const dateStr = event.date
+      ? new Date(event.date + 'T00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
+      : '';
+    const lines = [
+      `🎟️ *Meu ingresso para ${event.name}*`,
+      '',
+      `👤 ${guest.first_name} ${guest.last_name}`,
+      dateStr && `📅 ${dateStr}${event.time ? ` às ${event.time}` : ''}`,
+      event.location && `📍 ${event.location}`,
+      totalPeople > 1 && `👥 ${totalPeople} pessoas`,
+      '',
+      `Acesse: ${url}`,
+    ].filter(Boolean).join('\n');
+    const waUrl = `https://wa.me/?text=${encodeURIComponent(lines)}`;
+    window.open(waUrl, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <div className="min-h-screen bg-background py-8 px-4">
       <div className="max-w-md mx-auto">
@@ -257,7 +276,7 @@ export default function TicketPage() {
             style={event.primary_color ? { borderColor: event.primary_color, color: event.primary_color } : undefined}
           >
             <FileImage className="w-4 h-4 mr-2" />
-            {downloading === 'png' ? 'Gerando...' : 'Baixar PNG'}
+            {downloading === 'png' ? 'Gerando...' : 'PNG'}
           </Button>
           <Button
             onClick={handleDownloadPDF}
@@ -266,9 +285,18 @@ export default function TicketPage() {
             style={event.primary_color ? { background: event.primary_color, color: '#fff' } : undefined}
           >
             <FileText className="w-4 h-4 mr-2" />
-            {downloading === 'pdf' ? 'Gerando...' : 'Baixar PDF'}
+            {downloading === 'pdf' ? 'Gerando...' : 'PDF'}
           </Button>
         </div>
+
+        <Button
+          onClick={handleShareWhatsApp}
+          variant="outline"
+          className="w-full mt-2 border-[#25D366] text-[#25D366] hover:bg-[#25D366] hover:text-white"
+        >
+          <Share2 className="w-4 h-4 mr-2" />
+          Compartilhar no WhatsApp
+        </Button>
 
         <p className="text-xs text-center text-muted-foreground mt-4">
           Salve este ingresso ou tire um print para apresentar na entrada
