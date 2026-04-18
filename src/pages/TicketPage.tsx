@@ -237,11 +237,22 @@ export default function TicketPage() {
         </div>
 
         <div className="flex gap-2 mt-4">
-          <Button onClick={handleDownloadPNG} disabled={!!downloading} variant="outline" className="flex-1">
+          <Button
+            onClick={handleDownloadPNG}
+            disabled={!!downloading}
+            variant="outline"
+            className="flex-1"
+            style={event.primary_color ? { borderColor: event.primary_color, color: event.primary_color } : undefined}
+          >
             <FileImage className="w-4 h-4 mr-2" />
             {downloading === 'png' ? 'Gerando...' : 'Baixar PNG'}
           </Button>
-          <Button onClick={handleDownloadPDF} disabled={!!downloading} variant="outline" className="flex-1">
+          <Button
+            onClick={handleDownloadPDF}
+            disabled={!!downloading}
+            className="flex-1"
+            style={event.primary_color ? { background: event.primary_color, color: '#fff' } : undefined}
+          >
             <FileText className="w-4 h-4 mr-2" />
             {downloading === 'pdf' ? 'Gerando...' : 'Baixar PDF'}
           </Button>
