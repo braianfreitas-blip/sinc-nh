@@ -8,9 +8,10 @@ import { MapPin, Clock, CheckCircle2, AlertCircle, Users, CalendarDays, XCircle,
 import { PAYMENT_LABELS } from '@/types/event';
 import { toast } from 'sonner';
 import sincLogo from '@/assets/sinc-logo.png';
+import NotFound from '@/pages/NotFound';
 
 export default function PublicRSVPPage() {
-  const { event, findGuestByName, addGuest, updateGuest } = useEvent();
+  const { event, notFound, loading, findGuestByName, addGuest, updateGuest } = useEvent();
   const navigate = useNavigate();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -25,6 +26,9 @@ export default function PublicRSVPPage() {
   const [lookupLast, setLookupLast] = useState('');
   const [lookupResult, setLookupResult] = useState<ReturnType<typeof findGuestByName> | null>(null);
   const [lookupSearched, setLookupSearched] = useState(false);
+
+  if (loading) return null;
+  if (notFound) return <NotFound />;
 
   const confirmedCount = event.guests.filter(g => g.presenceStatus !== 'cancelled').reduce((s, g) => s + 1 + g.companions, 0);
   const isFull = confirmedCount >= event.maxGuests;
@@ -56,6 +60,7 @@ export default function PublicRSVPPage() {
         companions: event.allowCompanions ? companions : 0,
         amountDue: event.isPaid ? event.ticketPrice * (1 + (event.allowCompanions ? companions : 0)) : 0,
         invitedBy: invitedBy.trim(),
+        phone: phone.trim() || existing.phone,
         email: event.useTickets ? email.trim() : existing.email,
       });
       setFound({ ...existing, presenceStatus: status, confirmedAt: new Date().toISOString(), email: event.useTickets ? email.trim() : existing.email });
@@ -65,6 +70,7 @@ export default function PublicRSVPPage() {
       const guest = addGuest({
         firstName: firstName.trim(),
         lastName: lastName.trim(),
+        phone: phone.trim() || undefined,
         email: event.useTickets ? email.trim() : undefined,
         presenceStatus: status,
         paymentStatus: event.isPaid ? 'pending' : 'not_applicable',
@@ -100,6 +106,7 @@ export default function PublicRSVPPage() {
     setFirstName('');
     setLastName('');
     setEmail('');
+    setPhone('');
     setCompanions(0);
     setInvitedBy('');
     setFound(null);
@@ -245,6 +252,7 @@ export default function PublicRSVPPage() {
                   <div className="space-y-4">
                     <div><Label>Nome *</Label><Input value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="João" /></div>
                     <div><Label>Sobrenome *</Label><Input value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Silva" /></div>
+                    <div><Label>Celular *</Label><Input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="(51) 99999-9999" /></div>
                     {event.useTickets && (
                       <div>
                         <Label>E-mail *</Label>
@@ -422,62 +430,6 @@ export default function PublicRSVPPage() {
           )}
         </div>
 
-        {/* Lista de Confirmados */}
-        {confirmedGuests.length > 0 && (
-          <div className="bg-card rounded-2xl border border-border shadow-elegant p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-display text-lg font-semibold flex items-center gap-2">
-                <Users className="w-5 h-5 text-primary" />
-                Confirmados
-              </h3>
-              <span className="text-sm font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">
-                {confirmedGuests.reduce((s, g) => s + 1 + g.companions, 0)} pessoa(s)
-              </span>
-            </div>
-            <ul className="space-y-2 max-h-64 overflow-y-auto">
-              {confirmedGuests.map(g => (
-                <li key={g.id} className="flex items-center justify-between text-sm py-2 border-b border-border last:border-0">
-                  <div>
-                    <span className="font-medium text-foreground">{g.firstName} {g.lastName}</span>
-                    {g.invitedBy && (
-                      <span className="text-xs text-muted-foreground ml-2">• por {g.invitedBy}</span>
-                    )}
-                  </div>
-                  {g.companions > 0 && (
-                    <span className="text-xs text-muted-foreground shrink-0">+{g.companions}</span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Lista de Desconfirmados */}
-        {cancelledGuests.length > 0 && (
-          <div className="bg-card rounded-2xl border border-border shadow-elegant p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-display text-lg font-semibold flex items-center gap-2">
-                <XCircle className="w-5 h-5 text-destructive" />
-                Desconfirmados
-              </h3>
-              <span className="text-sm font-medium text-destructive bg-destructive/10 px-3 py-1 rounded-full">
-                {cancelledGuests.length} pessoa(s)
-              </span>
-            </div>
-            <ul className="space-y-2 max-h-48 overflow-y-auto">
-              {cancelledGuests.map(g => (
-                <li key={g.id} className="flex items-center justify-between text-sm py-2 border-b border-border last:border-0">
-                  <div>
-                    <span className="font-medium text-foreground">{g.firstName} {g.lastName}</span>
-                    {g.invitedBy && (
-                      <span className="text-xs text-muted-foreground ml-2">• por {g.invitedBy}</span>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
       </div>
       {/* Footer */}
       <div className="py-6 text-center">
