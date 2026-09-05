@@ -339,62 +339,6 @@ export default function PublicRSVPPage() {
           )}
         </div>
 
-        {/* Lista de Confirmados */}
-        {confirmedGuests.length > 0 && (
-          <div className="bg-card rounded-2xl border border-border shadow-elegant p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-display text-lg font-semibold flex items-center gap-2">
-                <Users className="w-5 h-5 text-primary" />
-                Confirmados
-              </h3>
-              <span className="text-sm font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">
-                {confirmedGuests.reduce((s, g) => s + 1 + g.companions, 0)} pessoa(s)
-              </span>
-            </div>
-            <ul className="space-y-2 max-h-64 overflow-y-auto">
-              {confirmedGuests.map(g => (
-                <li key={g.id} className="flex items-center justify-between text-sm py-2 border-b border-border last:border-0">
-                  <div>
-                    <span className="font-medium text-foreground">{g.firstName} {g.lastName}</span>
-                    {g.invitedBy && (
-                      <span className="text-xs text-muted-foreground ml-2">• por {g.invitedBy}</span>
-                    )}
-                  </div>
-                  {g.companions > 0 && (
-                    <span className="text-xs text-muted-foreground shrink-0">+{g.companions}</span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Lista de Desconfirmados */}
-        {cancelledGuests.length > 0 && (
-          <div className="bg-card rounded-2xl border border-border shadow-elegant p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-display text-lg font-semibold flex items-center gap-2">
-                <XCircle className="w-5 h-5 text-destructive" />
-                Desconfirmados
-              </h3>
-              <span className="text-sm font-medium text-destructive bg-destructive/10 px-3 py-1 rounded-full">
-                {cancelledGuests.length} pessoa(s)
-              </span>
-            </div>
-            <ul className="space-y-2 max-h-48 overflow-y-auto">
-              {cancelledGuests.map(g => (
-                <li key={g.id} className="flex items-center justify-between text-sm py-2 border-b border-border last:border-0">
-                  <div>
-                    <span className="font-medium text-foreground">{g.firstName} {g.lastName}</span>
-                    {g.invitedBy && (
-                      <span className="text-xs text-muted-foreground ml-2">• por {g.invitedBy}</span>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
       </div>
       {/* Footer */}
       <div className="py-6 text-center">
