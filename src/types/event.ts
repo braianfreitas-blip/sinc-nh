@@ -35,7 +35,6 @@ export interface PaymentRecord {
 
 export interface EventData {
   id: string;
-  slug?: string;
   name: string;
   date: string;
   time: string;
@@ -43,18 +42,10 @@ export interface EventData {
   description: string;
   isPaid: boolean;
   ticketPrice: number;
-  ticketLabel: string;
   maxGuests: number;
   allowCompanions: boolean;
   maxCompanions: number;
   cancellationDeadline?: string;
-  headerTextColor?: string;
-  headerBgColor?: string;
-  primaryColor?: string;
-  logoUrl?: string;
-  coverUrl?: string;
-  pixKey?: string;
-  useTickets: boolean;
   guests: Guest[];
   payments: PaymentRecord[];
   createdAt: string;
