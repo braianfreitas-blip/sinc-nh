@@ -1,19 +1,20 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useEvent } from '@/contexts/EventContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { MapPin, Clock, CheckCircle2, AlertCircle, Users, CalendarDays, XCircle, Search, CreditCard } from 'lucide-react';
+import { MapPin, Clock, CheckCircle2, AlertCircle, Users, CalendarDays, XCircle, Search, CreditCard, Navigation2, Ticket } from 'lucide-react';
 import { PAYMENT_LABELS } from '@/types/event';
 import { toast } from 'sonner';
 import sincLogo from '@/assets/sinc-logo.png';
 
 export default function PublicRSVPPage() {
   const { event, findGuestByName, addGuest, updateGuest } = useEvent();
+  const navigate = useNavigate();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [companions, setCompanions] = useState(0);
   const [invitedBy, setInvitedBy] = useState('');
   const [found, setFound] = useState<ReturnType<typeof findGuestByName> | null>(null);
@@ -24,6 +25,8 @@ export default function PublicRSVPPage() {
   const [lookupResult, setLookupResult] = useState<ReturnType<typeof findGuestByName> | null>(null);
   const [lookupSearched, setLookupSearched] = useState(false);
 
+  const confirmedGuests = event.guests.filter(g => g.presenceStatus === 'confirmed' || g.presenceStatus === 'attended');
+  const cancelledGuests = event.guests.filter(g => g.presenceStatus === 'cancelled');
   const confirmedCount = event.guests.filter(g => g.presenceStatus !== 'cancelled').reduce((s, g) => s + 1 + g.companions, 0);
   const isFull = confirmedCount >= event.maxGuests;
 
@@ -34,9 +37,12 @@ export default function PublicRSVPPage() {
       toast.error('Informe nome e sobrenome.');
       return;
     }
-    if (!phone.trim()) {
-      toast.error('Informe seu celular.');
-      return;
+    if (event.useTickets) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!email.trim() || !emailRegex.test(email.trim())) {
+        toast.error('Informe um e-mail válido para emissão do ingresso.');
+        return;
+      }
     }
     const existing = findGuestByName(firstName.trim(), lastName.trim());
     if (existing) {
@@ -47,16 +53,16 @@ export default function PublicRSVPPage() {
         companions: event.allowCompanions ? companions : 0,
         amountDue: event.isPaid ? event.ticketPrice * (1 + (event.allowCompanions ? companions : 0)) : 0,
         invitedBy: invitedBy.trim(),
-        phone: phone.trim(),
+        email: event.useTickets ? email.trim() : existing.email,
       });
-      setFound({ ...existing, presenceStatus: status, confirmedAt: new Date().toISOString() });
+      setFound({ ...existing, presenceStatus: status, confirmedAt: new Date().toISOString(), email: event.useTickets ? email.trim() : existing.email });
       toast.success(status === 'waitlist' ? 'Adicionado à lista de espera!' : 'Presença confirmada!');
     } else {
       const status = isFull ? 'waitlist' : 'confirmed';
       const guest = addGuest({
         firstName: firstName.trim(),
         lastName: lastName.trim(),
-        phone: phone.trim(),
+        email: event.useTickets ? email.trim() : undefined,
         presenceStatus: status,
         paymentStatus: event.isPaid ? 'pending' : 'not_applicable',
         amountDue: event.isPaid ? event.ticketPrice * (1 + (event.allowCompanions ? companions : 0)) : 0,
@@ -90,7 +96,7 @@ export default function PublicRSVPPage() {
   const resetForm = () => {
     setFirstName('');
     setLastName('');
-    setPhone('');
+    setEmail('');
     setCompanions(0);
     setInvitedBy('');
     setFound(null);
@@ -125,15 +131,44 @@ export default function PublicRSVPPage() {
     setLookupSearched(false);
   };
 
+  const headerStyle: React.CSSProperties = {
+    ...(event.headerBgColor ? { background: event.headerBgColor } : {}),
+    ...(event.headerTextColor ? { color: event.headerTextColor } : {}),
+  };
+  const accentStyle: React.CSSProperties = event.primaryColor ? { color: event.primaryColor } : {};
+  const primaryBtnStyle: React.CSSProperties = event.primaryColor
+    ? { backgroundColor: event.primaryColor, color: '#fff', borderColor: event.primaryColor }
+    : {};
+  const outlinePrimaryStyle: React.CSSProperties = event.primaryColor
+    ? { borderColor: event.primaryColor, color: event.primaryColor }
+    : {};
+  const cssVars = event.primaryColor
+    ? ({ ['--brand-primary' as any]: event.primaryColor } as React.CSSProperties)
+    : {};
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" style={cssVars}>
+      {/* Cover banner */}
+      {event.coverUrl && (
+        <div className="w-full aspect-[3/1] sm:aspect-[4/1] overflow-hidden">
+          <img src={event.coverUrl} alt={event.name} className="w-full h-full object-cover" />
+        </div>
+      )}
+
       {/* Hero */}
-      <div className="gradient-primary text-primary-foreground py-16 px-4">
+      <div
+        className={event.headerBgColor ? 'py-16 px-4' : 'gradient-primary text-primary-foreground py-16 px-4'}
+        style={headerStyle}
+      >
         <div className="max-w-lg mx-auto text-center">
-          <img src={sincLogo} alt="SINC" className="w-20 h-20 rounded-2xl object-cover mx-auto mb-6" />
-          <h1 className="font-display text-4xl font-bold mb-4">{event.name || 'Evento'}</h1>
-          {event.description && <p className="text-primary-foreground/80 mb-6">{event.description}</p>}
-          <div className="flex flex-wrap justify-center gap-4 text-sm text-primary-foreground/70">
+          <img
+            src={event.logoUrl || sincLogo}
+            alt={event.name || 'Logo'}
+            className="w-20 h-20 rounded-2xl object-cover mx-auto mb-6"
+          />
+          <h1 className="font-display text-4xl font-bold mb-4" style={event.headerTextColor ? { color: event.headerTextColor } : undefined}>{event.name || 'Evento'}</h1>
+          {event.description && <p className="mb-6 opacity-80" style={event.headerTextColor ? { color: event.headerTextColor, opacity: 0.85 } : undefined}>{event.description}</p>}
+          <div className="flex flex-wrap justify-center gap-4 text-sm opacity-80" style={event.headerTextColor ? { color: event.headerTextColor, opacity: 0.85 } : undefined}>
             {event.date && (
               <span className="flex items-center gap-1">
                 <CalendarDays className="w-4 h-4" />
@@ -141,8 +176,23 @@ export default function PublicRSVPPage() {
               </span>
             )}
             {event.time && <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{event.time}</span>}
-            {event.location && <span className="flex items-center gap-1"><MapPin className="w-4 h-4" />{event.location}</span>}
+            {event.location && (
+              <span className="flex items-center gap-1 flex-wrap">
+                <MapPin className="w-4 h-4" />{event.location}
+                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`} target="_blank" rel="noopener noreferrer" className="ml-2 inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors" title="Google Maps">
+                  <MapPin className="w-3.5 h-3.5" style={accentStyle} />
+                </a>
+                <a href={`https://waze.com/ul?q=${encodeURIComponent(event.location)}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors" title="Waze">
+                  <Navigation2 className="w-3.5 h-3.5" style={accentStyle} />
+                </a>
+              </span>
+            )}
           </div>
+          {event.cancellationDeadline && (
+            <p className="mt-4 text-sm bg-primary-foreground/10 rounded-lg px-4 py-2 inline-block" style={event.headerTextColor ? { color: event.headerTextColor } : undefined}>
+              📅 Confirmação até {new Date(event.cancellationDeadline + 'T00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </p>
+          )}
         </div>
       </div>
 
@@ -153,6 +203,7 @@ export default function PublicRSVPPage() {
           <Button
             variant={mode === 'confirm' ? 'default' : 'outline'}
             className="flex-1"
+            style={mode === 'confirm' ? primaryBtnStyle : outlinePrimaryStyle}
             onClick={() => { setMode('confirm'); resetLookup(); }}
           >
             Confirmar Presença
@@ -160,9 +211,10 @@ export default function PublicRSVPPage() {
           <Button
             variant={mode === 'manage' ? 'default' : 'outline'}
             className="flex-1"
+            style={mode === 'manage' ? primaryBtnStyle : outlinePrimaryStyle}
             onClick={() => { setMode('manage'); resetForm(); }}
           >
-            <Search className="w-4 h-4 mr-2" />Gerenciar
+            <Search className="w-4 h-4 mr-2" />Desconfirmar
           </Button>
         </div>
 
@@ -190,7 +242,13 @@ export default function PublicRSVPPage() {
                   <div className="space-y-4">
                     <div><Label>Nome *</Label><Input value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="João" /></div>
                     <div><Label>Sobrenome *</Label><Input value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Silva" /></div>
-                    <div><Label>Celular *</Label><Input type="tel" inputMode="tel" maxLength={20} value={phone} onChange={e => setPhone(e.target.value)} placeholder="(11) 99999-9999" /></div>
+                    {event.useTickets && (
+                      <div>
+                        <Label>E-mail *</Label>
+                        <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com" />
+                        <p className="text-xs text-muted-foreground mt-1">Necessário para emissão do seu ingresso</p>
+                      </div>
+                    )}
                     <div><Label>Quem te convidou?</Label><Input value={invitedBy} onChange={e => setInvitedBy(e.target.value)} placeholder="Nome de quem convidou" /></div>
                     {event.allowCompanions && (
                       <div>
@@ -200,14 +258,14 @@ export default function PublicRSVPPage() {
                     )}
                     {event.isPaid && (
                       <div className="bg-gold-light rounded-lg p-4 text-center">
-                        <p className="text-sm text-muted-foreground">Valor do ingresso</p>
+                        <p className="text-sm text-muted-foreground">{event.ticketLabel || 'Ingresso'}</p>
                         <p className="text-2xl font-bold text-foreground">
                           {(event.ticketPrice * (1 + companions)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                         </p>
                         {companions > 0 && <p className="text-xs text-muted-foreground">({1 + companions} pessoas)</p>}
                       </div>
                     )}
-                    <Button onClick={handleConfirm} className="w-full h-12 text-base">
+                    <Button onClick={handleConfirm} className="w-full h-12 text-base" style={primaryBtnStyle}>
                       {isFull ? 'Entrar na Lista de Espera' : 'Confirmar Presença'}
                     </Button>
                   </div>
@@ -224,19 +282,30 @@ export default function PublicRSVPPage() {
                       <Users className="w-4 h-4" />+{found!.companions} acompanhante(s)
                     </p>
                   )}
-                  {event.isPaid && found!.paymentStatus === 'pending' && (
+                  {event.isPaid && (found!.paymentStatus === 'pending' || found!.paymentStatus === 'partial') && (
                     <div className="bg-warning/10 rounded-lg p-4 mt-4">
                       <p className="text-sm font-medium text-warning">Pagamento pendente</p>
                       <p className="text-2xl font-bold mt-1">{(found!.amountDue - found!.amountPaid).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
-                      <Button className="mt-3 w-full" onClick={() => toast.info('Integração com Stripe será habilitada em breve.')}>
-                        Pagar Agora
-                      </Button>
+                      {event.pixKey && (
+                        <Button className="mt-3 w-full" style={primaryBtnStyle} onClick={() => {
+                          navigator.clipboard.writeText(event.pixKey!);
+                          toast.success('Chave PIX copiada! Cole no app do seu banco para pagar.');
+                        }}>
+                          <CreditCard className="w-4 h-4 mr-2" />Clique para copiar chave PIX
+                        </Button>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-2">A confirmação do pagamento será feita pelo administrador.</p>
                     </div>
                   )}
                   {event.isPaid && found!.paymentStatus === 'paid' && (
                     <div className="bg-success/10 rounded-lg p-4 mt-4">
                       <p className="text-sm font-medium text-success">✓ Pagamento aprovado</p>
                     </div>
+                  )}
+                  {event.useTickets && (found!.presenceStatus === 'confirmed' || found!.presenceStatus === 'attended') && (
+                    <Button className="w-full" style={primaryBtnStyle} onClick={() => navigate(`/ticket/${found!.id}`)}>
+                      <Ticket className="w-4 h-4 mr-2" />Ver meu Ingresso
+                    </Button>
                   )}
                   {canCancel && (
                     <Button variant="destructive" className="w-full" onClick={handleUnconfirm}>
@@ -266,7 +335,7 @@ export default function PublicRSVPPage() {
                   <div className="space-y-4">
                     <div><Label>Nome *</Label><Input value={lookupFirst} onChange={e => setLookupFirst(e.target.value)} placeholder="João" /></div>
                     <div><Label>Sobrenome *</Label><Input value={lookupLast} onChange={e => setLookupLast(e.target.value)} placeholder="Silva" /></div>
-                    <Button onClick={handleLookup} className="w-full h-12 text-base">
+                    <Button onClick={handleLookup} className="w-full h-12 text-base" style={primaryBtnStyle}>
                       <Search className="w-4 h-4 mr-2" />Buscar
                     </Button>
                   </div>
@@ -306,13 +375,26 @@ export default function PublicRSVPPage() {
                           <p className="text-2xl font-bold mt-1">
                             {(lookupResult.amountDue - lookupResult.amountPaid).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                           </p>
-                          <p className="text-xs text-muted-foreground mt-1">A confirmação do pagamento será feita pelo administrador.</p>
+                          {event.pixKey && (
+                            <Button className="mt-3 w-full" style={primaryBtnStyle} onClick={() => {
+                              navigator.clipboard.writeText(event.pixKey!);
+                              toast.success('Chave PIX copiada! Cole no app do seu banco para pagar.');
+                            }}>
+                              <CreditCard className="w-4 h-4 mr-2" />Clique para copiar chave PIX
+                            </Button>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-2">A confirmação do pagamento será feita pelo administrador.</p>
                         </>
                       )}
                       {lookupResult.paymentStatus === 'paid' && (
                         <p className="text-sm text-success mt-1">✓ Pagamento confirmado</p>
                       )}
                     </div>
+                  )}
+                  {event.useTickets && (
+                    <Button className="w-full" style={primaryBtnStyle} onClick={() => navigate(`/ticket/${lookupResult.id}`)}>
+                      <Ticket className="w-4 h-4 mr-2" />Ver meu Ingresso
+                    </Button>
                   )}
                   {canCancel && (
                     <Button variant="destructive" className="w-full" onClick={handleLookupCancel}>
@@ -337,6 +419,62 @@ export default function PublicRSVPPage() {
           )}
         </div>
 
+        {/* Lista de Confirmados */}
+        {confirmedGuests.length > 0 && (
+          <div className="bg-card rounded-2xl border border-border shadow-elegant p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-display text-lg font-semibold flex items-center gap-2">
+                <Users className="w-5 h-5 text-primary" />
+                Confirmados
+              </h3>
+              <span className="text-sm font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">
+                {confirmedGuests.reduce((s, g) => s + 1 + g.companions, 0)} pessoa(s)
+              </span>
+            </div>
+            <ul className="space-y-2 max-h-64 overflow-y-auto">
+              {confirmedGuests.map(g => (
+                <li key={g.id} className="flex items-center justify-between text-sm py-2 border-b border-border last:border-0">
+                  <div>
+                    <span className="font-medium text-foreground">{g.firstName} {g.lastName}</span>
+                    {g.invitedBy && (
+                      <span className="text-xs text-muted-foreground ml-2">• por {g.invitedBy}</span>
+                    )}
+                  </div>
+                  {g.companions > 0 && (
+                    <span className="text-xs text-muted-foreground shrink-0">+{g.companions}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Lista de Desconfirmados */}
+        {cancelledGuests.length > 0 && (
+          <div className="bg-card rounded-2xl border border-border shadow-elegant p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-display text-lg font-semibold flex items-center gap-2">
+                <XCircle className="w-5 h-5 text-destructive" />
+                Desconfirmados
+              </h3>
+              <span className="text-sm font-medium text-destructive bg-destructive/10 px-3 py-1 rounded-full">
+                {cancelledGuests.length} pessoa(s)
+              </span>
+            </div>
+            <ul className="space-y-2 max-h-48 overflow-y-auto">
+              {cancelledGuests.map(g => (
+                <li key={g.id} className="flex items-center justify-between text-sm py-2 border-b border-border last:border-0">
+                  <div>
+                    <span className="font-medium text-foreground">{g.firstName} {g.lastName}</span>
+                    {g.invitedBy && (
+                      <span className="text-xs text-muted-foreground ml-2">• por {g.invitedBy}</span>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
       {/* Footer */}
       <div className="py-6 text-center">
