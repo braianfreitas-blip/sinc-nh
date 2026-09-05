@@ -33,6 +33,7 @@ interface EventContextType {
   findGuestByName: (firstName: string, lastName: string) => Guest | undefined;
   stats: EventStats;
   loading: boolean;
+  notFound: boolean;
 }
 
 interface EventStats {
@@ -119,9 +120,11 @@ function mapEvent(row: any): Omit<EventData, 'guests' | 'payments'> {
 export function EventProvider({ children, eventId }: { children: React.ReactNode; eventId: string }) {
   const [event, setEvent] = useState<EventData>({ ...DEFAULT_EVENT, id: eventId });
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!eventId) return;
+    setNotFound(false);
     try {
       // Try by UUID first, then by slug
       const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
@@ -148,6 +151,7 @@ export function EventProvider({ children, eventId }: { children: React.ReactNode
       setEvent({ ...eventData, guests, payments });
     } catch (err) {
       console.error('Error loading event data:', err);
+      setNotFound(true);
     } finally {
       setLoading(false);
     }
@@ -203,7 +207,7 @@ export function EventProvider({ children, eventId }: { children: React.ReactNode
     setEvent(prev => ({ ...prev, guests: [...prev.guests, guest] }));
 
     supabase.from('guests').insert({
-      event_id: eventId,
+      event_id: event.id,
       first_name: guestData.firstName,
       last_name: guestData.lastName,
       phone: guestData.phone || null,
@@ -231,7 +235,7 @@ export function EventProvider({ children, eventId }: { children: React.ReactNode
     });
 
     return guest;
-  }, [eventId]);
+  }, [event.id]);
 
   const updateGuest = useCallback((id: string, data: Partial<Guest>) => {
     setEvent(prev => ({
@@ -347,7 +351,7 @@ export function EventProvider({ children, eventId }: { children: React.ReactNode
   }, [event.guests]);
 
   return (
-    <EventContext.Provider value={{ event, updateEvent, addGuest, updateGuest, removeGuest, addPayment, getGuest, findGuestByName, stats, loading }}>
+    <EventContext.Provider value={{ event, updateEvent, addGuest, updateGuest, removeGuest, addPayment, getGuest, findGuestByName, stats, loading, notFound }}>
       {children}
     </EventContext.Provider>
   );
