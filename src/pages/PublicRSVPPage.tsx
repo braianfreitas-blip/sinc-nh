@@ -15,6 +15,7 @@ export default function PublicRSVPPage() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [companions, setCompanions] = useState(0);
   const [invitedBy, setInvitedBy] = useState('');
   const [found, setFound] = useState<ReturnType<typeof findGuestByName> | null>(null);
@@ -25,8 +26,6 @@ export default function PublicRSVPPage() {
   const [lookupResult, setLookupResult] = useState<ReturnType<typeof findGuestByName> | null>(null);
   const [lookupSearched, setLookupSearched] = useState(false);
 
-  const confirmedGuests = event.guests.filter(g => g.presenceStatus === 'confirmed' || g.presenceStatus === 'attended');
-  const cancelledGuests = event.guests.filter(g => g.presenceStatus === 'cancelled');
   const confirmedCount = event.guests.filter(g => g.presenceStatus !== 'cancelled').reduce((s, g) => s + 1 + g.companions, 0);
   const isFull = confirmedCount >= event.maxGuests;
 
@@ -35,6 +34,10 @@ export default function PublicRSVPPage() {
   const handleConfirm = () => {
     if (!firstName.trim() || !lastName.trim()) {
       toast.error('Informe nome e sobrenome.');
+      return;
+    }
+    if (!phone.trim()) {
+      toast.error('Informe seu celular.');
       return;
     }
     if (event.useTickets) {
