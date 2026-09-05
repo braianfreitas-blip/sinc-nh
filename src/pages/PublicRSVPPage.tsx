@@ -13,6 +13,7 @@ export default function PublicRSVPPage() {
   const { event, findGuestByName, addGuest, updateGuest } = useEvent();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
   const [companions, setCompanions] = useState(0);
   const [invitedBy, setInvitedBy] = useState('');
   const [found, setFound] = useState<ReturnType<typeof findGuestByName> | null>(null);
@@ -35,6 +36,10 @@ export default function PublicRSVPPage() {
       toast.error('Informe nome e sobrenome.');
       return;
     }
+    if (!phone.trim()) {
+      toast.error('Informe seu celular.');
+      return;
+    }
     const existing = findGuestByName(firstName.trim(), lastName.trim());
     if (existing) {
       const status = isFull ? 'waitlist' : 'confirmed';
@@ -44,6 +49,7 @@ export default function PublicRSVPPage() {
         companions: event.allowCompanions ? companions : 0,
         amountDue: event.isPaid ? event.ticketPrice * (1 + (event.allowCompanions ? companions : 0)) : 0,
         invitedBy: invitedBy.trim(),
+        phone: phone.trim(),
       });
       setFound({ ...existing, presenceStatus: status, confirmedAt: new Date().toISOString() });
       toast.success(status === 'waitlist' ? 'Adicionado à lista de espera!' : 'Presença confirmada!');
@@ -52,6 +58,7 @@ export default function PublicRSVPPage() {
       const guest = addGuest({
         firstName: firstName.trim(),
         lastName: lastName.trim(),
+        phone: phone.trim(),
         presenceStatus: status,
         paymentStatus: event.isPaid ? 'pending' : 'not_applicable',
         amountDue: event.isPaid ? event.ticketPrice * (1 + (event.allowCompanions ? companions : 0)) : 0,
@@ -85,6 +92,7 @@ export default function PublicRSVPPage() {
   const resetForm = () => {
     setFirstName('');
     setLastName('');
+    setPhone('');
     setCompanions(0);
     setInvitedBy('');
     setFound(null);
@@ -184,6 +192,7 @@ export default function PublicRSVPPage() {
                   <div className="space-y-4">
                     <div><Label>Nome *</Label><Input value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="João" /></div>
                     <div><Label>Sobrenome *</Label><Input value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Silva" /></div>
+                    <div><Label>Celular *</Label><Input type="tel" inputMode="tel" maxLength={20} value={phone} onChange={e => setPhone(e.target.value)} placeholder="(11) 99999-9999" /></div>
                     <div><Label>Quem te convidou?</Label><Input value={invitedBy} onChange={e => setInvitedBy(e.target.value)} placeholder="Nome de quem convidou" /></div>
                     {event.allowCompanions && (
                       <div>
