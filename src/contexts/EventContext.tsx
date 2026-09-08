@@ -207,6 +207,7 @@ export function EventProvider({ children, eventId }: { children: React.ReactNode
     setEvent(prev => ({ ...prev, guests: [...prev.guests, guest] }));
 
     supabase.from('guests').insert({
+      id: tempId,
       event_id: event.id,
       first_name: guestData.firstName,
       last_name: guestData.lastName,
