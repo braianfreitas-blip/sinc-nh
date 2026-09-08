@@ -121,11 +121,10 @@ export default function CheckinPage() {
                     else if (g.presenceStatus === 'waitlist') { label = PRESENCE_LABELS.waitlist; cls = PRESENCE_COLORS.waitlist; }
                     return <span className={`text-xs px-2 py-0.5 rounded-full ${cls}`}>{label}</span>;
                   })()}
-                  {event.isPaid && (
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${PAYMENT_COLORS[g.paymentStatus]}`}>
-                      {PAYMENT_LABELS[g.paymentStatus]}
-                    </span>
-                  )}
+                  {(() => {
+                    const pay = event.isPaid ? g.paymentStatus : 'exempt';
+                    return <span className={`text-xs px-2 py-0.5 rounded-full ${PAYMENT_COLORS[pay]}`}>{PAYMENT_LABELS[pay]}</span>;
+                  })()}
                 </div>
                 {g.companions > 0 && <p className="text-xs text-muted-foreground mt-1">+{g.companions} acompanhante(s)</p>}
                 {g.checkedIn && g.checkedInAt && (
