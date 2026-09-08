@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -40,14 +40,17 @@ interface TicketData {
 
 export default function TicketPage() {
   const { guestId } = useParams<{ guestId: string }>();
-  const [data, setData] = useState<TicketData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const location = useLocation();
+  const preloaded = (location.state as { ticket?: TicketData } | null)?.ticket ?? null;
+  const [data, setData] = useState<TicketData | null>(preloaded);
+  const [loading, setLoading] = useState(!preloaded);
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState<'png' | 'pdf' | null>(null);
   const ticketRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!guestId) return;
+    if (preloaded) return;
     (async () => {
       try {
         const { data: guest, error: gErr } = await supabase
