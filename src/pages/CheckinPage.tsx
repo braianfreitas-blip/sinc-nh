@@ -113,9 +113,14 @@ export default function CheckinPage() {
               <div>
                 <p className="font-medium">{g.firstName} {g.lastName}</p>
                 <div className="flex gap-2 mt-1">
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${PRESENCE_COLORS[g.presenceStatus]}`}>
-                    {PRESENCE_LABELS[g.presenceStatus]}
-                  </span>
+                  {(() => {
+                    let label = 'Check-in pendente';
+                    let cls = 'bg-muted text-muted-foreground';
+                    if (g.checkedIn) { label = 'Compareceu'; cls = PRESENCE_COLORS.attended; }
+                    else if (g.presenceStatus === 'cancelled') { label = PRESENCE_LABELS.cancelled; cls = PRESENCE_COLORS.cancelled; }
+                    else if (g.presenceStatus === 'waitlist') { label = PRESENCE_LABELS.waitlist; cls = PRESENCE_COLORS.waitlist; }
+                    return <span className={`text-xs px-2 py-0.5 rounded-full ${cls}`}>{label}</span>;
+                  })()}
                   {event.isPaid && (
                     <span className={`text-xs px-2 py-0.5 rounded-full ${PAYMENT_COLORS[g.paymentStatus]}`}>
                       {PAYMENT_LABELS[g.paymentStatus]}
