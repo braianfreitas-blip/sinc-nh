@@ -203,11 +203,11 @@ export default function TicketPage() {
         <div ref={ticketRef} className="bg-card rounded-2xl border border-border shadow-elegant overflow-hidden">
           {/* Cover/Banner */}
           {event.cover_url && (
-            <div className="w-full aspect-[3/1] sm:aspect-[4/1] overflow-hidden bg-muted">
+            <div className="w-full overflow-hidden bg-muted">
               <img
                 src={event.cover_url}
                 alt={`Capa do evento ${event.name}`}
-                className="w-full h-full object-cover"
+                className="w-full h-auto block"
                 crossOrigin="anonymous"
               />
             </div>
