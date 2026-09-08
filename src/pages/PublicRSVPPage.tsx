@@ -73,7 +73,7 @@ export default function PublicRSVPPage() {
         phone: phone.trim() || undefined,
         email: email.trim() || undefined,
         presenceStatus: status,
-        paymentStatus: event.isPaid ? 'pending' : 'not_applicable',
+        paymentStatus: event.isPaid ? 'pending' : 'exempt',
         amountDue: event.isPaid ? event.ticketPrice * (1 + (event.allowCompanions ? companions : 0)) : 0,
         amountPaid: 0,
         companions: event.allowCompanions ? companions : 0,
