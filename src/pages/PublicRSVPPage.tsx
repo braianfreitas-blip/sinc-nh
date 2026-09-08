@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { MapPin, Clock, CheckCircle2, AlertCircle, Users, CalendarDays, XCircle, Search, CreditCard, Navigation2, Ticket } from 'lucide-react';
-import { PAYMENT_LABELS } from '@/types/event';
+import { PAYMENT_LABELS, Guest } from '@/types/event';
 import { toast } from 'sonner';
 import sincLogo from '@/assets/sinc-logo.png';
 import NotFound from '@/pages/NotFound';
@@ -101,6 +101,35 @@ export default function PublicRSVPPage() {
 
   const isConfirmed = found && (found.presenceStatus === 'confirmed' || found.presenceStatus === 'attended');
   const wasCancelled = found && found.presenceStatus === 'cancelled';
+
+  const buildTicket = (g: Guest) => ({
+    guest: {
+      id: g.id,
+      first_name: g.firstName,
+      last_name: g.lastName,
+      email: g.email ?? null,
+      companions: g.companions,
+      presence_status: g.presenceStatus,
+      payment_status: g.paymentStatus,
+      checked_in: g.checkedIn,
+    },
+    event: {
+      id: event.id,
+      slug: event.slug ?? null,
+      name: event.name,
+      date: event.date,
+      time: event.time,
+      location: event.location,
+      is_paid: event.isPaid,
+      ticket_label: event.ticketLabel,
+      use_tickets: event.useTickets,
+      logo_url: event.logoUrl ?? null,
+      cover_url: event.coverUrl ?? null,
+      header_bg_color: event.headerBgColor ?? null,
+      header_text_color: event.headerTextColor ?? null,
+      primary_color: event.primaryColor ?? null,
+    },
+  });
 
   const resetForm = () => {
     setFirstName('');
@@ -314,7 +343,7 @@ export default function PublicRSVPPage() {
                     </div>
                   )}
                   {event.useTickets && (found!.presenceStatus === 'confirmed' || found!.presenceStatus === 'attended') && (
-                    <Button className="w-full" style={primaryBtnStyle} onClick={() => navigate(`/ticket/${found!.id}`)}>
+                    <Button className="w-full" style={primaryBtnStyle} onClick={() => navigate(`/ticket/${found!.id}`, { state: { ticket: buildTicket(found!) } })}>
                       <Ticket className="w-4 h-4 mr-2" />Ver meu Ingresso
                     </Button>
                   )}
@@ -403,7 +432,7 @@ export default function PublicRSVPPage() {
                     </div>
                   )}
                   {event.useTickets && (
-                    <Button className="w-full" style={primaryBtnStyle} onClick={() => navigate(`/ticket/${lookupResult.id}`)}>
+                    <Button className="w-full" style={primaryBtnStyle} onClick={() => navigate(`/ticket/${lookupResult.id}`, { state: { ticket: buildTicket(lookupResult) } })}>
                       <Ticket className="w-4 h-4 mr-2" />Ver meu Ingresso
                     </Button>
                   )}
