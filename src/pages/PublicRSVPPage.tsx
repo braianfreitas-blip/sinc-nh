@@ -44,10 +44,10 @@ export default function PublicRSVPPage() {
       toast.error('Informe seu celular.');
       return;
     }
-    if (event.useTickets) {
+    if (email.trim()) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!email.trim() || !emailRegex.test(email.trim())) {
-        toast.error('Informe um e-mail válido para emissão do ingresso.');
+      if (!emailRegex.test(email.trim())) {
+        toast.error('Informe um e-mail válido.');
         return;
       }
     }
@@ -61,9 +61,9 @@ export default function PublicRSVPPage() {
         amountDue: event.isPaid ? event.ticketPrice * (1 + (event.allowCompanions ? companions : 0)) : 0,
         invitedBy: invitedBy.trim(),
         phone: phone.trim() || existing.phone,
-        email: event.useTickets ? email.trim() : existing.email,
+        email: email.trim() || existing.email,
       });
-      setFound({ ...existing, presenceStatus: status, confirmedAt: new Date().toISOString(), email: event.useTickets ? email.trim() : existing.email });
+      setFound({ ...existing, presenceStatus: status, confirmedAt: new Date().toISOString(), email: email.trim() || existing.email });
       toast.success(status === 'waitlist' ? 'Adicionado à lista de espera!' : 'Presença confirmada!');
     } else {
       const status = isFull ? 'waitlist' : 'confirmed';
@@ -71,7 +71,7 @@ export default function PublicRSVPPage() {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         phone: phone.trim() || undefined,
-        email: event.useTickets ? email.trim() : undefined,
+        email: email.trim() || undefined,
         presenceStatus: status,
         paymentStatus: event.isPaid ? 'pending' : 'not_applicable',
         amountDue: event.isPaid ? event.ticketPrice * (1 + (event.allowCompanions ? companions : 0)) : 0,
@@ -284,9 +284,9 @@ export default function PublicRSVPPage() {
                     <div><Label>Celular *</Label><Input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="(51) 99999-9999" /></div>
                     {event.useTickets && (
                       <div>
-                        <Label>E-mail *</Label>
+                        <Label>E-mail (opcional)</Label>
                         <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com" />
-                        <p className="text-xs text-muted-foreground mt-1">Necessário para emissão do seu ingresso</p>
+                        <p className="text-xs text-muted-foreground mt-1">Opcional</p>
                       </div>
                     )}
                     <div><Label>Quem te convidou?</Label><Input value={invitedBy} onChange={e => setInvitedBy(e.target.value)} placeholder="Nome de quem convidou" /></div>
