@@ -275,7 +275,7 @@ export default function PublicRSVPPage() {
                   <div className="w-16 h-16 rounded-full bg-warning/10 flex items-center justify-center mx-auto">
                     <Clock className="w-8 h-8 text-warning" />
                   </div>
-                  <h2 className="font-display text-2xl font-semibold">Você está na lista de espera 💛</h2>
+                  <h2 className="font-display text-2xl font-semibold">Você está na lista de espera 💚</h2>
                   <p className="text-muted-foreground">{found!.firstName}, guardamos o seu nome com todo carinho!</p>
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     Só pra ser sincero com você: entrar na lista de espera ainda <span className="font-medium text-foreground">não garante</span> a sua vaga. Mas fica tranquilo(a) — se abrir um lugar e um ingresso for gerado pra você, a gente te avisa na hora. 🙏
