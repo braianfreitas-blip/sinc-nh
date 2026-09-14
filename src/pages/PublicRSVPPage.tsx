@@ -64,7 +64,7 @@ export default function PublicRSVPPage() {
         email: email.trim() || existing.email,
       });
       setFound({ ...existing, presenceStatus: status, confirmedAt: new Date().toISOString(), email: email.trim() || existing.email });
-      toast.success(status === 'waitlist' ? 'Adicionado à lista de espera!' : 'Presença confirmada!');
+      if (status !== 'waitlist') toast.success('Presença confirmada!');
     } else {
       const status = isFull ? 'waitlist' : 'confirmed';
       const guest = addGuest({
@@ -83,7 +83,7 @@ export default function PublicRSVPPage() {
         confirmedAt: new Date().toISOString(),
       });
       setFound(guest);
-      toast.success(status === 'waitlist' ? 'Adicionado à lista de espera!' : 'Presença confirmada!');
+      if (status !== 'waitlist') toast.success('Presença confirmada!');
     }
     setSearched(true);
   };
@@ -101,6 +101,7 @@ export default function PublicRSVPPage() {
 
   const isConfirmed = found && (found.presenceStatus === 'confirmed' || found.presenceStatus === 'attended');
   const wasCancelled = found && found.presenceStatus === 'cancelled';
+  const isWaitlisted = found && found.presenceStatus === 'waitlist';
 
   const buildTicket = (g: Guest) => ({
     guest: {
@@ -267,6 +268,18 @@ export default function PublicRSVPPage() {
                   </div>
                   <h2 className="font-display text-xl font-semibold">Presença Cancelada</h2>
                   <p className="text-muted-foreground">{found!.firstName} {found!.lastName}</p>
+                  <Button variant="outline" className="w-full" onClick={resetForm}>Voltar</Button>
+                </div>
+              ) : isWaitlisted ? (
+                <div className="text-center space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-warning/10 flex items-center justify-center mx-auto">
+                    <Clock className="w-8 h-8 text-warning" />
+                  </div>
+                  <h2 className="font-display text-2xl font-semibold">Você está na lista de espera 💛</h2>
+                  <p className="text-muted-foreground">{found!.firstName}, guardamos o seu nome com todo carinho!</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Só pra ser sincero com você: entrar na lista de espera ainda <span className="font-medium text-foreground">não garante</span> a sua vaga. Mas fica tranquilo(a) — se abrir um lugar e um ingresso for gerado pra você, a gente te avisa na hora. 🙏
+                  </p>
                   <Button variant="outline" className="w-full" onClick={resetForm}>Voltar</Button>
                 </div>
               ) : !isConfirmed ? (
