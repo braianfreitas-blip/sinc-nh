@@ -273,9 +273,12 @@ export default function PublicRSVPPage() {
                 <>
                   <h2 className="font-display text-xl font-semibold text-center mb-6">Confirme sua Presença</h2>
                   {isFull && (
-                    <div className="bg-warning/10 text-warning rounded-lg p-3 mb-4 flex items-center gap-2 text-sm">
-                      <AlertCircle className="w-4 h-4 shrink-0" />
-                      Evento lotado. Novas confirmações entram na lista de espera.
+                    <div className="bg-warning/10 text-warning rounded-lg p-3 mb-4 flex items-start gap-2 text-sm">
+                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium">Ops! Nossas vagas já se esgotaram, mas não fique triste, Jesus te ama!</p>
+                        <p className="mt-1">Seu nome ficará em uma lista de espera, caso tenhamos novas vagas você será notificado :)</p>
+                      </div>
                     </div>
                   )}
                   <div className="space-y-4">
