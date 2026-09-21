@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useEvent } from '@/contexts/EventContext';
-import { Guest, PRESENCE_LABELS, PAYMENT_LABELS, PRESENCE_COLORS, PAYMENT_COLORS, PresenceStatus, PaymentStatus, PaymentMethod, PAYMENT_METHOD_LABELS, isNaoInscrito } from '@/types/event';
+import { Guest, PRESENCE_LABELS, PAYMENT_LABELS, PRESENCE_COLORS, PAYMENT_COLORS, PresenceStatus, PaymentStatus, PaymentMethod, PAYMENT_METHOD_LABELS, isNaoInscrito, situacaoPresenca, SITUACAO_LABELS, SITUACAO_COLORS, isConfirmado } from '@/types/event';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -16,8 +17,11 @@ function formatCurrency(v: number) {
 
 export default function GuestListPage() {
   const { event, addGuest, updateGuest, removeGuest, addPayment } = useEvent();
+  const [searchParams] = useSearchParams();
   const [search, setSearch] = useState('');
-  const [presenceFilter, setPresenceFilter] = useState<string>('all');
+  // Filtro por situação (Inscrito/Confirmado/Compareceu/Ausentes/...). Pode vir
+  // pré-selecionado por link do dashboard (?situacao=confirmado).
+  const [presenceFilter, setPresenceFilter] = useState<string>(searchParams.get('situacao') || 'all');
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
   const [editGuest, setEditGuest] = useState<Guest | null>(null);
   const [showAdd, setShowAdd] = useState(false);
@@ -26,10 +30,17 @@ export default function GuestListPage() {
   // Somente inscritos — não inscritos são contados na tela de check-in.
   const inscritos = event.guests.filter(g => !isNaoInscrito(g));
 
+  const matchSituacao = (g: Guest) => {
+    if (presenceFilter === 'all') return true;
+    const s = situacaoPresenca(g);
+    if (presenceFilter === 'ausentes') return s === 'inscrito' || s === 'confirmado';
+    return s === presenceFilter;
+  };
+
   const filtered = inscritos.filter(g => {
     const name = `${g.firstName} ${g.lastName}`.toLowerCase();
     if (search && !name.includes(search.toLowerCase())) return false;
-    if (presenceFilter !== 'all' && g.presenceStatus !== presenceFilter) return false;
+    if (!matchSituacao(g)) return false;
     if (paymentFilter !== 'all' && g.paymentStatus !== paymentFilter) return false;
     return true;
   });
@@ -37,7 +48,7 @@ export default function GuestListPage() {
   const handleExport = () => {
     const headers = ['Nome', 'Sobrenome', 'Telefone', 'Quem Convidou', 'Presença', 'Pagamento', 'Valor Devido', 'Valor Pago', 'Acompanhantes', 'Observações', 'Confirmado em'];
     const rows = inscritos.map(g => [
-      g.firstName, g.lastName, g.phone || '', g.invitedBy || '', PRESENCE_LABELS[g.presenceStatus],
+      g.firstName, g.lastName, g.phone || '', g.invitedBy || '', SITUACAO_LABELS[situacaoPresenca(g)],
       PAYMENT_LABELS[g.paymentStatus], g.amountDue, g.amountPaid, g.companions,
       g.notes, g.confirmedAt || ''
     ]);
@@ -73,8 +84,13 @@ export default function GuestListPage() {
         <Select value={presenceFilter} onValueChange={setPresenceFilter}>
           <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Presença" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todas presenças</SelectItem>
-            {Object.entries(PRESENCE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+            <SelectItem value="all">Todas situações</SelectItem>
+            <SelectItem value="inscrito">Inscrito</SelectItem>
+            <SelectItem value="confirmado">Confirmado</SelectItem>
+            <SelectItem value="compareceu">Compareceu</SelectItem>
+            <SelectItem value="ausentes">Ausentes</SelectItem>
+            <SelectItem value="lista_espera">Lista de espera</SelectItem>
+            <SelectItem value="cancelado">Cancelado</SelectItem>
           </SelectContent>
         </Select>
         <Select value={paymentFilter} onValueChange={setPaymentFilter}>
@@ -113,8 +129,8 @@ export default function GuestListPage() {
                 <td className="p-4 hidden md:table-cell text-muted-foreground">{g.phone || '—'}</td>
                 <td className="p-4 hidden lg:table-cell text-muted-foreground">{g.invitedBy || '—'}</td>
                 <td className="p-4">
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${PRESENCE_COLORS[g.presenceStatus]}`}>
-                    {PRESENCE_LABELS[g.presenceStatus]}
+                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${SITUACAO_COLORS[situacaoPresenca(g)]}`}>
+                    {SITUACAO_LABELS[situacaoPresenca(g)]}
                   </span>
                 </td>
                 <td className="p-4 hidden sm:table-cell">
@@ -142,7 +158,7 @@ export default function GuestListPage() {
                       updateGuest(g.id, { checkedIn: true, checkedInAt: new Date().toISOString(), presenceStatus: 'attended' });
                       toast.success('Check-in realizado!');
                     }} title="Check-in"><UserCheck className="w-4 h-4 text-info" /></Button>
-                    {event.useTickets && (g.presenceStatus === 'confirmed' || g.presenceStatus === 'attended') && (!event.isPaid || g.paymentStatus === 'paid') && (
+                    {event.useTickets && (g.presenceStatus === 'confirmed' || g.presenceStatus === 'attended') && isConfirmado(g) && (
                       <>
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
                           window.open(`/ticket/${g.id}`, '_blank');
@@ -177,7 +193,7 @@ export default function GuestListPage() {
           addGuest({
             ...data,
             presenceStatus: 'pending',
-            paymentStatus: event.isPaid ? 'pending' : 'not_applicable',
+            paymentStatus: event.isPaid ? 'pending' : 'exempt',
             amountDue: event.isPaid ? event.ticketPrice * (1 + data.companions) : 0,
             amountPaid: 0,
             checkedIn: false,
@@ -258,7 +274,7 @@ function GuestFormDialog({ open, onClose, onSave, initial, isPaid, ticketPrice, 
   const [notes, setNotes] = useState(initial?.notes || '');
   const [invitedBy, setInvitedBy] = useState(initial?.invitedBy || '');
   const [presenceStatus, setPresenceStatus] = useState(initial?.presenceStatus || 'pending');
-  const [paymentStatus, setPaymentStatus] = useState(initial?.paymentStatus || (isPaid ? 'pending' : 'not_applicable'));
+  const [paymentStatus, setPaymentStatus] = useState(initial?.paymentStatus || (isPaid ? 'pending' : 'exempt'));
 
   const handleSubmit = () => {
     if (!firstName.trim() || !lastName.trim()) {
