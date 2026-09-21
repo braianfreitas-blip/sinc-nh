@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { MapPin, Clock, CheckCircle2, AlertCircle, Users, CalendarDays, XCircle, Search, CreditCard, Navigation2, Ticket } from 'lucide-react';
-import { PAYMENT_LABELS, Guest } from '@/types/event';
+import { PAYMENT_LABELS, Guest, isNaoInscrito } from '@/types/event';
 import { toast } from 'sonner';
 import sincLogo from '@/assets/sinc-logo.png';
 import NotFound from '@/pages/NotFound';
@@ -30,7 +30,7 @@ export default function PublicRSVPPage() {
   if (loading) return null;
   if (notFound) return <NotFound />;
 
-  const confirmedCount = event.guests.filter(g => g.presenceStatus !== 'cancelled').reduce((s, g) => s + 1 + g.companions, 0);
+  const confirmedCount = event.guests.filter(g => !isNaoInscrito(g) && g.presenceStatus !== 'cancelled').reduce((s, g) => s + 1 + g.companions, 0);
   const isFull = confirmedCount >= event.maxGuests;
 
   const canCancel = !event.cancellationDeadline || new Date() <= new Date(event.cancellationDeadline + 'T23:59:59');

@@ -1,6 +1,6 @@
 import { useEvent } from '@/contexts/EventContext';
-import { PRESENCE_LABELS, PAYMENT_LABELS, PRESENCE_COLORS, PAYMENT_COLORS } from '@/types/event';
-import { Users, UserCheck, Clock, XCircle, ListOrdered, CheckCircle2, DollarSign, TrendingUp, Percent } from 'lucide-react';
+import { PRESENCE_LABELS, PAYMENT_LABELS, PRESENCE_COLORS, PAYMENT_COLORS, isNaoInscrito } from '@/types/event';
+import { Users, UserCheck, Clock, XCircle, ListOrdered, CheckCircle2, DollarSign, TrendingUp, Percent, UserPlus, Baby } from 'lucide-react';
 
 function StatCard({ icon: Icon, label, value, sub, color }: { icon: any; label: string; value: string | number; sub?: string; color?: string }) {
   return (
@@ -24,7 +24,7 @@ function formatCurrency(v: number) {
 export default function DashboardPage() {
   const { event, stats } = useEvent();
   const recentConfirmations = [...event.guests]
-    .filter(g => g.confirmedAt)
+    .filter(g => !isNaoInscrito(g) && g.confirmedAt)
     .sort((a, b) => new Date(b.confirmedAt!).getTime() - new Date(a.confirmedAt!).getTime())
     .slice(0, 5);
   const recentPayments = [...event.payments]
@@ -51,6 +51,16 @@ export default function DashboardPage() {
         <StatCard icon={TrendingUp} label="Pendente" value={formatCurrency(stats.totalPending)} color="bg-warning/10 text-warning" />
         <StatCard icon={Percent} label="Taxa Confirmação" value={`${stats.confirmationRate}%`} />
         <StatCard icon={CheckCircle2} label="Compareceram" value={stats.attended} color="bg-primary/10 text-primary" />
+      </div>
+
+      <div>
+        <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Presença</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard icon={Users} label="Presentes (total)" value={stats.presentesTotal} sub="inscritos + não inscritos" color="bg-primary/10 text-primary" />
+          <StatCard icon={UserPlus} label="Não inscritos" value={stats.naoInscritosTotal} color="bg-accent/20 text-accent-foreground" />
+          <StatCard icon={UserPlus} label="Não inscritos: adultos" value={stats.naoInscritosAdultos} />
+          <StatCard icon={Baby} label="Não inscritos: crianças" value={stats.naoInscritosCriancas} />
+        </div>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">

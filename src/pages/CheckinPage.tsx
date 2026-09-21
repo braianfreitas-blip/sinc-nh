@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useEvent } from '@/contexts/EventContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { PRESENCE_LABELS, PRESENCE_COLORS, PAYMENT_LABELS, PAYMENT_COLORS } from '@/types/event';
-import { Search, UserCheck, CheckCircle2, ScanLine, Loader2, XCircle, Clock } from 'lucide-react';
+import { PRESENCE_LABELS, PRESENCE_COLORS, PAYMENT_LABELS, PAYMENT_COLORS, isNaoInscrito, naoInscritoCategoria, WalkinCategoria } from '@/types/event';
+import { Search, UserCheck, CheckCircle2, ScanLine, Loader2, XCircle, Clock, UserPlus, Baby, Undo2, Users, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 import QRScanner from '@/components/QRScanner';
 
@@ -16,17 +16,43 @@ interface ScanResult {
 }
 
 export default function CheckinPage() {
-  const { event, updateGuest, getGuest } = useEvent();
+  const { event, updateGuest, getGuest, stats, addNaoInscrito, removeLastNaoInscrito } = useEvent();
   const [search, setSearch] = useState('');
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
+  const [nomeAvulso, setNomeAvulso] = useState('');
+  const [salvandoAvulso, setSalvandoAvulso] = useState(false);
+  const [verNaoInscritos, setVerNaoInscritos] = useState(false);
 
-  const guests = event.guests.filter(g => {
+  // Apenas inscritos (não inscritos são contados no card à parte).
+  const inscritos = event.guests.filter(g => !isNaoInscrito(g));
+  const naoInscritos = event.guests.filter(isNaoInscrito);
+
+  const guests = inscritos.filter(g => {
     if (!search) return true;
     return `${g.firstName} ${g.lastName}`.toLowerCase().includes(search.toLowerCase());
   });
 
-  const checkedIn = event.guests.filter(g => g.checkedIn).length;
+  const checkedIn = inscritos.filter(g => g.checkedIn).length;
+
+  const addAvulso = async (categoria: WalkinCategoria) => {
+    setSalvandoAvulso(true);
+    const { error } = await addNaoInscrito(categoria, nomeAvulso);
+    setSalvandoAvulso(false);
+    if (error) {
+      toast.error('Não foi possível salvar. Verifique a conexão e tente de novo.');
+    } else {
+      setNomeAvulso('');
+      toast.success(categoria === 'crianca' ? 'Criança não inscrita registrada!' : 'Adulto não inscrito registrado!');
+    }
+  };
+
+  const desfazerAvulso = async () => {
+    if (naoInscritos.length === 0) return;
+    const { error } = await removeLastNaoInscrito();
+    if (error) toast.error('Não foi possível desfazer. Tente de novo.');
+    else toast.info('Último não inscrito removido.');
+  };
 
   // Grava o check-in e só confirma quando salvou de verdade no banco.
   const persistCheckIn = (id: string) =>
@@ -112,10 +138,80 @@ export default function CheckinPage() {
     <div className="space-y-6 max-w-3xl mx-auto">
       <div className="text-center">
         <h1 className="text-3xl font-bold">Check-in</h1>
-        <p className="text-muted-foreground mt-1">{checkedIn} de {event.guests.length} check-ins realizados</p>
+        <p className="text-muted-foreground mt-1">{checkedIn} de {inscritos.length} inscritos presentes</p>
         <div className="mt-4 h-2 bg-muted rounded-full overflow-hidden max-w-md mx-auto">
-          <div className="h-full bg-success rounded-full transition-all" style={{ width: `${event.guests.length > 0 ? (checkedIn / event.guests.length) * 100 : 0}%` }} />
+          <div className="h-full bg-success rounded-full transition-all" style={{ width: `${inscritos.length > 0 ? (checkedIn / inscritos.length) * 100 : 0}%` }} />
         </div>
+        <div className="mt-3 inline-flex items-center gap-2 text-sm font-medium bg-primary/10 text-primary px-4 py-1.5 rounded-full">
+          <Users className="w-4 h-4" />Presentes no total: {stats.presentesTotal}
+        </div>
+      </div>
+
+      {/* Card: Não inscritos */}
+      <div className="bg-card rounded-2xl border border-border shadow-card p-5">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold flex items-center gap-2">
+            <UserPlus className="w-5 h-5 text-primary" />Não inscritos
+          </h3>
+          <span className="text-sm font-medium text-primary bg-primary/10 px-3 py-0.5 rounded-full">
+            {stats.naoInscritosTotal} no total
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground mb-3">
+          Quem veio sem inscrição. Um toque conta — o nome é opcional.
+        </p>
+        <div className="mb-3">
+          <Input
+            value={nomeAvulso}
+            onChange={e => setNomeAvulso(e.target.value)}
+            placeholder="Nome (opcional)"
+            className="h-11"
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <Button onClick={() => addAvulso('adulto')} disabled={salvandoAvulso} className="h-12 text-base" size="lg">
+            <UserPlus className="w-5 h-5 mr-1" />+1 adulto
+          </Button>
+          <Button onClick={() => addAvulso('crianca')} disabled={salvandoAvulso} variant="secondary" className="h-12 text-base" size="lg">
+            <Baby className="w-5 h-5 mr-1" />+1 criança
+          </Button>
+        </div>
+        <div className="flex items-center justify-between mt-3 text-sm">
+          <span className="text-muted-foreground">
+            Adultos: <span className="font-semibold text-foreground">{stats.naoInscritosAdultos}</span> · Crianças: <span className="font-semibold text-foreground">{stats.naoInscritosCriancas}</span>
+          </span>
+          <button
+            onClick={desfazerAvulso}
+            disabled={stats.naoInscritosTotal === 0}
+            className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Undo2 className="w-4 h-4" />Desfazer último
+          </button>
+        </div>
+        {naoInscritos.length > 0 && (
+          <div className="mt-3 border-t border-border pt-3">
+            <button
+              onClick={() => setVerNaoInscritos(v => !v)}
+              className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+            >
+              {verNaoInscritos ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              {verNaoInscritos ? 'Ocultar lista' : 'Ver não inscritos'}
+            </button>
+            {verNaoInscritos && (
+              <ul className="mt-2 space-y-1 max-h-48 overflow-y-auto">
+                {naoInscritos.map(g => (
+                  <li key={g.id} className="flex items-center justify-between text-sm py-1 border-b border-border last:border-0">
+                    <span className="text-foreground">{g.firstName || 'Sem nome'}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {naoInscritoCategoria(g) === 'crianca' ? 'Criança' : 'Adulto'}
+                      {g.checkedInAt ? ` · ${new Date(g.checkedInAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : ''}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
       </div>
 
       {event.useTickets && (

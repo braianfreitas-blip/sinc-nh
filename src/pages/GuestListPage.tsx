@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useEvent } from '@/contexts/EventContext';
-import { Guest, PRESENCE_LABELS, PAYMENT_LABELS, PRESENCE_COLORS, PAYMENT_COLORS, PresenceStatus, PaymentStatus, PaymentMethod, PAYMENT_METHOD_LABELS } from '@/types/event';
+import { Guest, PRESENCE_LABELS, PAYMENT_LABELS, PRESENCE_COLORS, PAYMENT_COLORS, PresenceStatus, PaymentStatus, PaymentMethod, PAYMENT_METHOD_LABELS, isNaoInscrito } from '@/types/event';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -23,7 +23,10 @@ export default function GuestListPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [showPayment, setShowPayment] = useState<Guest | null>(null);
 
-  const filtered = event.guests.filter(g => {
+  // Somente inscritos — não inscritos são contados na tela de check-in.
+  const inscritos = event.guests.filter(g => !isNaoInscrito(g));
+
+  const filtered = inscritos.filter(g => {
     const name = `${g.firstName} ${g.lastName}`.toLowerCase();
     if (search && !name.includes(search.toLowerCase())) return false;
     if (presenceFilter !== 'all' && g.presenceStatus !== presenceFilter) return false;
@@ -33,7 +36,7 @@ export default function GuestListPage() {
 
   const handleExport = () => {
     const headers = ['Nome', 'Sobrenome', 'Telefone', 'Quem Convidou', 'Presença', 'Pagamento', 'Valor Devido', 'Valor Pago', 'Acompanhantes', 'Observações', 'Confirmado em'];
-    const rows = event.guests.map(g => [
+    const rows = inscritos.map(g => [
       g.firstName, g.lastName, g.phone || '', g.invitedBy || '', PRESENCE_LABELS[g.presenceStatus],
       PAYMENT_LABELS[g.paymentStatus], g.amountDue, g.amountPaid, g.companions,
       g.notes, g.confirmedAt || ''
@@ -54,7 +57,7 @@ export default function GuestListPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold">Convidados</h1>
-          <p className="text-muted-foreground">{event.guests.length} convidados cadastrados</p>
+          <p className="text-muted-foreground">{inscritos.length} convidados cadastrados</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handleExport}><Download className="w-4 h-4 mr-1" />Exportar</Button>
