@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useEvent } from '@/contexts/EventContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { PRESENCE_LABELS, PRESENCE_COLORS, PAYMENT_LABELS, PAYMENT_COLORS, isNaoInscrito, naoInscritoCategoria, WalkinCategoria, isConfirmado, Guest } from '@/types/event';
+import { PRESENCE_LABELS, PRESENCE_COLORS, PAYMENT_LABELS, PAYMENT_COLORS, isNaoInscrito, naoInscritoCategoria, WalkinCategoria, isConfirmado, Guest, PaymentMethod, PAYMENT_METHOD_LABELS } from '@/types/event';
 import { Search, UserCheck, CheckCircle2, ScanLine, Loader2, XCircle, Clock, UserPlus, Baby, Undo2, Users, ChevronDown, ChevronUp, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import QRScanner from '@/components/QRScanner';
@@ -30,6 +30,10 @@ export default function CheckinPage() {
   const [soPendentes, setSoPendentes] = useState(false);
   // Convidado aguardando decisão de pagamento no check-in (evento pago).
   const [pendingPayment, setPendingPayment] = useState<{ guest: Guest; viaScan: boolean } | null>(null);
+  // Forma de pagamento escolhida na hora de confirmar o pagamento no check-in.
+  const [metodoPagamento, setMetodoPagamento] = useState<PaymentMethod>('pix');
+
+  const METODOS: PaymentMethod[] = ['pix', 'cash', 'card', 'transfer', 'other'];
 
   // Apenas inscritos (não inscritos são contados no card à parte).
   const inscritos = event.guests.filter(g => !isNaoInscrito(g));
@@ -111,6 +115,7 @@ export default function CheckinPage() {
     setPendingPayment(null);
     if (viaScan) setScanResult({ status: 'saving', name: fullName });
 
+    const metodoLabel = PAYMENT_METHOD_LABELS[metodoPagamento];
     const { error } = await updateGuest(g.id, {
       checkedIn: true,
       checkedInAt: now,
@@ -118,6 +123,7 @@ export default function CheckinPage() {
       paymentStatus: 'paid',
       amountPaid: g.amountDue,
       paidAt: now,
+      paymentMethod: metodoPagamento,
     });
 
     if (error) {
@@ -125,12 +131,12 @@ export default function CheckinPage() {
       else toast.error(`Não foi possível salvar o check-in de ${g.firstName}. Tente de novo.`);
       return;
     }
-    // Registra o pagamento no histórico/financeiro.
+    // Registra o pagamento no histórico/financeiro com a forma escolhida.
     if (restante > 0) {
-      addPayment({ guestId: g.id, amount: restante, method: 'cash', date: now, notes: 'Pago no check-in', isManual: true });
+      addPayment({ guestId: g.id, amount: restante, method: metodoPagamento, date: now, notes: `Pago no check-in (${metodoLabel})`, isManual: true });
     }
-    if (viaScan) setScanResult({ status: 'success', name: fullName, detail: `Pagamento confirmado${g.companions > 0 ? ` · +${g.companions} acompanhante(s)` : ''}` });
-    else toast.success(`Pagamento confirmado e check-in de ${g.firstName} realizado!`);
+    if (viaScan) setScanResult({ status: 'success', name: fullName, detail: `Pagamento confirmado · ${metodoLabel}${g.companions > 0 ? ` · +${g.companions} acompanhante(s)` : ''}` });
+    else toast.success(`Pagamento (${metodoLabel}) confirmado e check-in de ${g.firstName} realizado!`);
   };
 
   // Faz só o check-in, sem mexer no pagamento.
@@ -368,6 +374,25 @@ export default function CheckinPage() {
             <p className="text-muted-foreground">
               Falta {formatCurrency(Math.max(0, pendingPayment.guest.amountDue - pendingPayment.guest.amountPaid))}. Confirmar o pagamento junto com o check-in?
             </p>
+            <div className="text-left">
+              <p className="text-sm font-medium mb-2 text-center">Forma de pagamento</p>
+              <div className="grid grid-cols-3 gap-2">
+                {METODOS.map(m => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setMetodoPagamento(m)}
+                    className={`h-10 rounded-lg border text-sm font-medium transition-colors ${
+                      metodoPagamento === m
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border bg-card text-muted-foreground hover:border-primary/40'
+                    }`}
+                  >
+                    {PAYMENT_METHOD_LABELS[m]}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="space-y-2 pt-2">
               <Button onClick={confirmarComPagamento} className="w-full h-12 text-base" size="lg">
                 <DollarSign className="w-5 h-5 mr-1" />Confirmar pagamento + check-in
