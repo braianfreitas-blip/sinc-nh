@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { EventData, Guest, PaymentRecord, PaymentMethod, WalkinCategoria, isNaoInscrito, naoInscritoCategoria, naoInscritoNotes } from '@/types/event';
+import { EventData, Guest, PaymentRecord, PaymentMethod, WalkinCategoria, isNaoInscrito, naoInscritoCategoria, naoInscritoNotes, situacaoPresenca } from '@/types/event';
 import { supabase } from '@/integrations/supabase/client';
 
 const DEFAULT_EVENT: EventData = {
@@ -57,6 +57,11 @@ interface EventStats {
   naoInscritosCriancas: number;
   naoInscritosTotal: number;
   presentesTotal: number;
+  // Jornada única (Inscrito -> Confirmado -> Compareceu)
+  inscritos: number;
+  confirmados: number;
+  compareceram: number;
+  ausentes: number;
 }
 
 const EventContext = createContext<EventContextType | null>(null);
@@ -468,6 +473,13 @@ export function EventProvider({ children, eventId }: { children: React.ReactNode
     const totalRefunded = guests.filter(g => g.paymentStatus === 'refunded').reduce((s, g) => s + g.amountPaid, 0);
     const total = guests.length;
 
+    // Jornada única: Inscrito -> Confirmado -> Compareceu.
+    const inscritos = guests.filter(g => situacaoPresenca(g) === 'inscrito').length;
+    const confirmados = guests.filter(g => situacaoPresenca(g) === 'confirmado').length;
+    const compareceram = guests.filter(g => situacaoPresenca(g) === 'compareceu').length;
+    // Ausentes = esperados (inscritos + confirmados) que não fizeram check-in.
+    const ausentes = inscritos + confirmados;
+
     return {
       totalGuests: total,
       confirmed,
@@ -488,6 +500,10 @@ export function EventProvider({ children, eventId }: { children: React.ReactNode
       naoInscritosTotal,
       // Presentes = inscritos que fizeram check-in + não inscritos.
       presentesTotal: guests.filter(g => g.checkedIn).length + naoInscritosTotal,
+      inscritos,
+      confirmados,
+      compareceram,
+      ausentes,
     };
   }, [event.guests]);
 
