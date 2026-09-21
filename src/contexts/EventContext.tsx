@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { EventData, Guest, PaymentRecord, PaymentMethod } from '@/types/event';
+import { EventData, Guest, PaymentRecord, PaymentMethod, WalkinCategoria, isNaoInscrito, naoInscritoCategoria, naoInscritoNotes } from '@/types/event';
 import { supabase } from '@/integrations/supabase/client';
 
 const DEFAULT_EVENT: EventData = {
@@ -28,6 +28,8 @@ interface EventContextType {
   addGuest: (guest: Omit<Guest, 'id' | 'createdAt'>) => Guest;
   updateGuest: (id: string, data: Partial<Guest>) => Promise<{ error: any }>;
   removeGuest: (id: string) => void;
+  addNaoInscrito: (categoria: WalkinCategoria, nome?: string) => Promise<{ error: any }>;
+  removeLastNaoInscrito: () => Promise<{ error: any }>;
   addPayment: (payment: Omit<PaymentRecord, 'id'>) => void;
   getGuest: (id: string) => Guest | undefined;
   findGuestByName: (firstName: string, lastName: string) => Guest | undefined;
@@ -51,6 +53,10 @@ interface EventStats {
   totalRefunded: number;
   confirmationRate: number;
   paymentRate: number;
+  naoInscritosAdultos: number;
+  naoInscritosCriancas: number;
+  naoInscritosTotal: number;
+  presentesTotal: number;
 }
 
 const EventContext = createContext<EventContextType | null>(null);
@@ -277,6 +283,77 @@ export function EventProvider({ children, eventId }: { children: React.ReactNode
     return guest;
   }, [event.id]);
 
+  // Adiciona um "não inscrito" (pessoa presente sem inscrição). Um toque = um
+  // registro. Confirma contra o banco e reverte em falha (igual ao check-in).
+  const addNaoInscrito = useCallback(async (categoria: WalkinCategoria, nome?: string): Promise<{ error: any }> => {
+    const tempId = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const notes = naoInscritoNotes(categoria);
+    const firstName = (nome && nome.trim()) || 'Não inscrito';
+    const guest: Guest = {
+      id: tempId,
+      firstName,
+      lastName: '',
+      presenceStatus: 'attended',
+      paymentStatus: 'exempt',
+      amountDue: 0,
+      amountPaid: 0,
+      companions: 0,
+      notes,
+      checkedIn: true,
+      checkedInAt: now,
+      createdAt: now,
+    };
+
+    setEvent(prev => ({ ...prev, guests: [...prev.guests, guest] }));
+
+    const { data, error } = await supabase.from('guests').insert({
+      id: tempId,
+      event_id: event.id,
+      first_name: firstName,
+      last_name: '',
+      presence_status: 'attended',
+      payment_status: 'exempt',
+      amount_due: 0,
+      amount_paid: 0,
+      companions: 0,
+      notes,
+      checked_in: true,
+      checked_in_at: now,
+    }).select().single();
+
+    if (error) {
+      console.error('Error adding não inscrito:', error);
+      setEvent(prev => ({ ...prev, guests: prev.guests.filter(g => g.id !== tempId) }));
+      return { error };
+    }
+    if (data) {
+      setEvent(prev => ({ ...prev, guests: prev.guests.map(g => g.id === tempId ? mapGuest(data) : g) }));
+    }
+    return { error: null };
+  }, [event.id]);
+
+  // Desfaz o último não inscrito adicionado (o mais recente).
+  const removeLastNaoInscrito = useCallback(async (): Promise<{ error: any }> => {
+    let target: Guest | undefined;
+    setEvent(prev => {
+      const naoInscritos = prev.guests.filter(isNaoInscrito);
+      target = naoInscritos[naoInscritos.length - 1];
+      if (!target) return prev;
+      return { ...prev, guests: prev.guests.filter(g => g.id !== target!.id) };
+    });
+    if (!target) return { error: null };
+
+    const { error } = await supabase.from('guests').delete().eq('id', target.id);
+    if (error) {
+      console.error('Error removing não inscrito:', error);
+      // Reverte: recoloca o registro removido.
+      if (target) setEvent(prev => (prev.guests.some(g => g.id === target!.id) ? prev : { ...prev, guests: [...prev.guests, target!] }));
+      return { error };
+    }
+    return { error: null };
+  }, []);
+
   const updateGuest = useCallback(async (id: string, data: Partial<Guest>): Promise<{ error: any }> => {
     let prevGuest: Guest | undefined;
     setEvent(prev => {
@@ -367,7 +444,12 @@ export function EventProvider({ children, eventId }: { children: React.ReactNode
   }, [event.guests]);
 
   const stats: EventStats = useMemo(() => {
-    const guests = event.guests;
+    // Não inscritos são contados à parte e NÃO entram nas métricas de inscritos.
+    const naoInscritos = event.guests.filter(isNaoInscrito);
+    const guests = event.guests.filter(g => !isNaoInscrito(g));
+    const naoInscritosAdultos = naoInscritos.filter(g => naoInscritoCategoria(g) === 'adulto').length;
+    const naoInscritosCriancas = naoInscritos.filter(g => naoInscritoCategoria(g) === 'crianca').length;
+    const naoInscritosTotal = naoInscritos.length;
     const confirmed = guests.filter(g => g.presenceStatus === 'confirmed').length;
     const pending = guests.filter(g => g.presenceStatus === 'pending').length;
     const cancelled = guests.filter(g => g.presenceStatus === 'cancelled').length;
@@ -401,11 +483,16 @@ export function EventProvider({ children, eventId }: { children: React.ReactNode
       totalRefunded,
       confirmationRate: total > 0 ? Math.round(((confirmed + attended) / total) * 100) : 0,
       paymentRate: totalExpected > 0 ? Math.round((totalReceived / totalExpected) * 100) : 0,
+      naoInscritosAdultos,
+      naoInscritosCriancas,
+      naoInscritosTotal,
+      // Presentes = inscritos que fizeram check-in + não inscritos.
+      presentesTotal: guests.filter(g => g.checkedIn).length + naoInscritosTotal,
     };
   }, [event.guests]);
 
   return (
-    <EventContext.Provider value={{ event, updateEvent, addGuest, updateGuest, removeGuest, addPayment, getGuest, findGuestByName, stats, loading, notFound }}>
+    <EventContext.Provider value={{ event, updateEvent, addGuest, updateGuest, removeGuest, addNaoInscrito, removeLastNaoInscrito, addPayment, getGuest, findGuestByName, stats, loading, notFound }}>
       {children}
     </EventContext.Provider>
   );
