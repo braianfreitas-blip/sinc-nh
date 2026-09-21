@@ -273,7 +273,7 @@ function GuestFormDialog({ open, onClose, onSave, initial, isPaid, ticketPrice, 
   const [companions, setCompanions] = useState(initial?.companions || 0);
   const [notes, setNotes] = useState(initial?.notes || '');
   const [invitedBy, setInvitedBy] = useState(initial?.invitedBy || '');
-  const [presenceStatus, setPresenceStatus] = useState(initial?.presenceStatus || 'pending');
+  const [presenceStatus, setPresenceStatus] = useState((initial?.presenceStatus === 'pending' ? 'confirmed' : initial?.presenceStatus) || 'confirmed');
   const [paymentStatus, setPaymentStatus] = useState(initial?.paymentStatus || (isPaid ? 'pending' : 'exempt'));
 
   const handleSubmit = () => {
@@ -308,25 +308,33 @@ function GuestFormDialog({ open, onClose, onSave, initial, isPaid, ticketPrice, 
           <div><Label>Telefone</Label><Input value={phone} onChange={e => setPhone(e.target.value)} /></div>
           <div><Label>Quem Convidou</Label><Input value={invitedBy} onChange={e => setInvitedBy(e.target.value)} placeholder="Nome de quem convidou" /></div>
           {initial && (
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Presença</Label>
-                <Select value={presenceStatus} onValueChange={v => setPresenceStatus(v as any)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(PRESENCE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+            <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Situação</Label>
+                  <Select value={presenceStatus} onValueChange={v => setPresenceStatus(v as any)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="confirmed">Inscrito / Confirmado (na lista)</SelectItem>
+                      <SelectItem value="attended">Compareceu</SelectItem>
+                      <SelectItem value="waitlist">Lista de espera</SelectItem>
+                      <SelectItem value="cancelled">Cancelado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Pagamento</Label>
+                  <Select value={paymentStatus} onValueChange={v => setPaymentStatus(v as any)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(PAYMENT_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div>
-                <Label>Pagamento</Label>
-                <Select value={paymentStatus} onValueChange={v => setPaymentStatus(v as any)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(PAYMENT_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
+              <p className="text-xs text-muted-foreground">
+                Na lista, aparece como <b>Inscrito</b> enquanto o pagamento está pendente e vira <b>Confirmado</b> quando Pago ou Isento.
+              </p>
             </div>
           )}
           {allowCompanions && (
