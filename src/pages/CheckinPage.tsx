@@ -2,10 +2,14 @@ import { useState } from 'react';
 import { useEvent } from '@/contexts/EventContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { PRESENCE_LABELS, PRESENCE_COLORS, PAYMENT_LABELS, PAYMENT_COLORS, isNaoInscrito, naoInscritoCategoria, WalkinCategoria } from '@/types/event';
-import { Search, UserCheck, CheckCircle2, ScanLine, Loader2, XCircle, Clock, UserPlus, Baby, Undo2, Users, ChevronDown, ChevronUp } from 'lucide-react';
+import { PRESENCE_LABELS, PRESENCE_COLORS, PAYMENT_LABELS, PAYMENT_COLORS, isNaoInscrito, naoInscritoCategoria, WalkinCategoria, isConfirmado, Guest } from '@/types/event';
+import { Search, UserCheck, CheckCircle2, ScanLine, Loader2, XCircle, Clock, UserPlus, Baby, Undo2, Users, ChevronDown, ChevronUp, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import QRScanner from '@/components/QRScanner';
+
+function formatCurrency(v: number) {
+  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
 
 type ScanStatus = 'saving' | 'success' | 'already' | 'error' | 'invalid';
 interface ScanResult {
@@ -16,19 +20,23 @@ interface ScanResult {
 }
 
 export default function CheckinPage() {
-  const { event, updateGuest, getGuest, stats, addNaoInscrito, removeLastNaoInscrito } = useEvent();
+  const { event, updateGuest, getGuest, stats, addNaoInscrito, removeLastNaoInscrito, addPayment } = useEvent();
   const [search, setSearch] = useState('');
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [nomeAvulso, setNomeAvulso] = useState('');
   const [salvandoAvulso, setSalvandoAvulso] = useState(false);
   const [verNaoInscritos, setVerNaoInscritos] = useState(false);
+  const [soPendentes, setSoPendentes] = useState(false);
+  // Convidado aguardando decisão de pagamento no check-in (evento pago).
+  const [pendingPayment, setPendingPayment] = useState<{ guest: Guest; viaScan: boolean } | null>(null);
 
   // Apenas inscritos (não inscritos são contados no card à parte).
   const inscritos = event.guests.filter(g => !isNaoInscrito(g));
   const naoInscritos = event.guests.filter(isNaoInscrito);
 
   const guests = inscritos.filter(g => {
+    if (soPendentes && (g.checkedIn || g.presenceStatus === 'cancelled')) return false;
     if (!search) return true;
     return `${g.firstName} ${g.lastName}`.toLowerCase().includes(search.toLowerCase());
   });
@@ -81,6 +89,59 @@ export default function CheckinPage() {
     setScannerOpen(true);
   };
 
+  // Evento pago com pagamento pendente/parcial: perguntar antes de dar check-in.
+  const needsPaymentDecision = (g: Guest) => event.isPaid && !isConfirmado(g);
+
+  const iniciarCheckin = (g: Guest, viaScan: boolean) => {
+    if (needsPaymentDecision(g)) {
+      setPendingPayment({ guest: g, viaScan });
+      return;
+    }
+    if (viaScan) runScanCheckIn(g.id, `${g.firstName} ${g.lastName}`, g.companions);
+    else manualCheckIn(g.id, g.firstName);
+  };
+
+  // Confirma o pagamento (marca como Pago) + faz o check-in, atualizando tudo.
+  const confirmarComPagamento = async () => {
+    if (!pendingPayment) return;
+    const { guest: g, viaScan } = pendingPayment;
+    const fullName = `${g.firstName} ${g.lastName}`;
+    const now = new Date().toISOString();
+    const restante = Math.max(0, g.amountDue - g.amountPaid);
+    setPendingPayment(null);
+    if (viaScan) setScanResult({ status: 'saving', name: fullName });
+
+    const { error } = await updateGuest(g.id, {
+      checkedIn: true,
+      checkedInAt: now,
+      presenceStatus: 'attended',
+      paymentStatus: 'paid',
+      amountPaid: g.amountDue,
+      paidAt: now,
+    });
+
+    if (error) {
+      if (viaScan) setScanResult({ status: 'error', name: fullName, guestId: g.id, detail: 'Não foi possível salvar. Toque em "Tentar de novo".' });
+      else toast.error(`Não foi possível salvar o check-in de ${g.firstName}. Tente de novo.`);
+      return;
+    }
+    // Registra o pagamento no histórico/financeiro.
+    if (restante > 0) {
+      addPayment({ guestId: g.id, amount: restante, method: 'cash', date: now, notes: 'Pago no check-in', isManual: true });
+    }
+    if (viaScan) setScanResult({ status: 'success', name: fullName, detail: `Pagamento confirmado${g.companions > 0 ? ` · +${g.companions} acompanhante(s)` : ''}` });
+    else toast.success(`Pagamento confirmado e check-in de ${g.firstName} realizado!`);
+  };
+
+  // Faz só o check-in, sem mexer no pagamento.
+  const soCheckin = () => {
+    if (!pendingPayment) return;
+    const { guest: g, viaScan } = pendingPayment;
+    setPendingPayment(null);
+    if (viaScan) runScanCheckIn(g.id, `${g.firstName} ${g.lastName}`, g.companions);
+    else manualCheckIn(g.id, g.firstName);
+  };
+
   const handleScan = (decoded: string) => {
     setScannerOpen(false);
     let guestId: string | null = null;
@@ -131,7 +192,7 @@ export default function CheckinPage() {
       return;
     }
 
-    runScanCheckIn(guest.id, fullName, guest.companions);
+    iniciarCheckin(guest, true);
   };
 
   return (
@@ -231,6 +292,16 @@ export default function CheckinPage() {
         />
       </div>
 
+      <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={soPendentes}
+          onChange={e => setSoPendentes(e.target.checked)}
+          className="w-4 h-4 accent-primary"
+        />
+        Ver só quem ainda não veio
+      </label>
+
       <div className="space-y-2">
         {guests.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">Nenhum convidado encontrado.</p>
@@ -266,7 +337,7 @@ export default function CheckinPage() {
               </div>
             </div>
             {!g.checkedIn ? (
-              <Button onClick={() => manualCheckIn(g.id, g.firstName)} size="sm">
+              <Button onClick={() => iniciarCheckin(g, false)} size="sm">
                 <UserCheck className="w-4 h-4 mr-1" />Check-in
               </Button>
             ) : (
@@ -284,6 +355,31 @@ export default function CheckinPage() {
           </div>
         ))}
       </div>
+
+      {/* Decisão de pagamento no check-in (evento pago) */}
+      {pendingPayment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-background/95 backdrop-blur">
+          <div className="w-full max-w-sm text-center space-y-5">
+            <div className="w-20 h-20 rounded-full bg-warning/15 flex items-center justify-center mx-auto">
+              <DollarSign className="w-12 h-12 text-warning" />
+            </div>
+            <h2 className="text-2xl font-bold">Pagamento pendente</h2>
+            <p className="text-xl font-semibold">{pendingPayment.guest.firstName} {pendingPayment.guest.lastName}</p>
+            <p className="text-muted-foreground">
+              Falta {formatCurrency(Math.max(0, pendingPayment.guest.amountDue - pendingPayment.guest.amountPaid))}. Confirmar o pagamento junto com o check-in?
+            </p>
+            <div className="space-y-2 pt-2">
+              <Button onClick={confirmarComPagamento} className="w-full h-12 text-base" size="lg">
+                <DollarSign className="w-5 h-5 mr-1" />Confirmar pagamento + check-in
+              </Button>
+              <Button variant="outline" onClick={soCheckin} className="w-full h-12 text-base">
+                <UserCheck className="w-5 h-5 mr-1" />Só check-in
+              </Button>
+              <Button variant="ghost" onClick={() => setPendingPayment(null)} className="w-full text-muted-foreground">Cancelar</Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {scannerOpen && <QRScanner onScan={handleScan} onClose={() => setScannerOpen(false)} />}
 
