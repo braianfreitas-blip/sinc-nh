@@ -26,7 +26,7 @@ interface EventContextType {
   event: EventData;
   updateEvent: (data: Partial<EventData>) => void;
   addGuest: (guest: Omit<Guest, 'id' | 'createdAt'>) => Guest;
-  updateGuest: (id: string, data: Partial<Guest>) => void;
+  updateGuest: (id: string, data: Partial<Guest>) => Promise<{ error: any }>;
   removeGuest: (id: string) => void;
   addPayment: (payment: Omit<PaymentRecord, 'id'>) => void;
   getGuest: (id: string) => Guest | undefined;
@@ -161,6 +161,45 @@ export function EventProvider({ children, eventId }: { children: React.ReactNode
     loadData();
   }, [loadData]);
 
+  // Tempo real: mantém a lista de convidados sincronizada entre todos os
+  // aparelhos (ex.: vários operadores fazendo check-in ao mesmo tempo).
+  useEffect(() => {
+    const realId = event.id;
+    // Só assina quando já temos o UUID real do evento (não o slug).
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(realId);
+    if (!isUUID) return;
+
+    const channel = supabase
+      .channel(`guests-${realId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'guests', filter: `event_id=eq.${realId}` },
+        (payload) => {
+          setEvent(prev => {
+            if (payload.eventType === 'INSERT') {
+              const g = mapGuest(payload.new);
+              if (prev.guests.some(x => x.id === g.id)) return prev;
+              return { ...prev, guests: [...prev.guests, g] };
+            }
+            if (payload.eventType === 'UPDATE') {
+              const g = mapGuest(payload.new);
+              return { ...prev, guests: prev.guests.map(x => x.id === g.id ? g : x) };
+            }
+            if (payload.eventType === 'DELETE') {
+              const oldId = (payload.old as any)?.id;
+              return { ...prev, guests: prev.guests.filter(x => x.id !== oldId) };
+            }
+            return prev;
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [event.id]);
+
   const updateEvent = useCallback(async (data: Partial<EventData>) => {
     setEvent(prev => ({ ...prev, ...data }));
 
@@ -238,11 +277,15 @@ export function EventProvider({ children, eventId }: { children: React.ReactNode
     return guest;
   }, [event.id]);
 
-  const updateGuest = useCallback((id: string, data: Partial<Guest>) => {
-    setEvent(prev => ({
-      ...prev,
-      guests: prev.guests.map(g => g.id === id ? { ...g, ...data } : g),
-    }));
+  const updateGuest = useCallback(async (id: string, data: Partial<Guest>): Promise<{ error: any }> => {
+    let prevGuest: Guest | undefined;
+    setEvent(prev => {
+      prevGuest = prev.guests.find(g => g.id === id);
+      return {
+        ...prev,
+        guests: prev.guests.map(g => g.id === id ? { ...g, ...data } : g),
+      };
+    });
 
     const dbData: Record<string, any> = {};
     if (data.firstName !== undefined) dbData.first_name = data.firstName;
@@ -263,10 +306,20 @@ export function EventProvider({ children, eventId }: { children: React.ReactNode
     if (data.invitedBy !== undefined) dbData.invited_by = data.invitedBy || null;
 
     if (Object.keys(dbData).length > 0) {
-      supabase.from('guests').update(dbData).eq('id', id).then(({ error }) => {
-        if (error) console.error('Error updating guest:', error);
-      });
+      const { error } = await supabase.from('guests').update(dbData).eq('id', id);
+      if (error) {
+        console.error('Error updating guest:', error);
+        // Reverte o estado local para o valor anterior — o banco não salvou.
+        if (prevGuest) {
+          setEvent(prev => ({
+            ...prev,
+            guests: prev.guests.map(g => g.id === id ? (prevGuest as Guest) : g),
+          }));
+        }
+        return { error };
+      }
     }
+    return { error: null };
   }, []);
 
   const removeGuest = useCallback((id: string) => {
