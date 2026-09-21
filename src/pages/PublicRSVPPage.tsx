@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { MapPin, Clock, CheckCircle2, AlertCircle, Users, CalendarDays, XCircle, Search, CreditCard, Navigation2, Ticket } from 'lucide-react';
-import { PAYMENT_LABELS, Guest, isNaoInscrito } from '@/types/event';
+import { PAYMENT_LABELS, Guest, isNaoInscrito, isConfirmado } from '@/types/event';
 import { toast } from 'sonner';
 import sincLogo from '@/assets/sinc-logo.png';
 import NotFound from '@/pages/NotFound';
@@ -358,7 +358,7 @@ export default function PublicRSVPPage() {
                       <p className="text-sm font-medium text-success">✓ Pagamento aprovado</p>
                     </div>
                   )}
-                  {event.useTickets && (found!.presenceStatus === 'confirmed' || found!.presenceStatus === 'attended') && (
+                  {event.useTickets && (found!.presenceStatus === 'confirmed' || found!.presenceStatus === 'attended') && isConfirmado(found!) && (
                     <Button className="w-full" style={primaryBtnStyle} onClick={() => navigate(`/ticket/${found!.id}`, { state: { ticket: buildTicket(found!) } })}>
                       <Ticket className="w-4 h-4 mr-2" />Ver meu Ingresso
                     </Button>
@@ -447,7 +447,7 @@ export default function PublicRSVPPage() {
                       )}
                     </div>
                   )}
-                  {event.useTickets && (
+                  {event.useTickets && isConfirmado(lookupResult) && (
                     <Button className="w-full" style={primaryBtnStyle} onClick={() => navigate(`/ticket/${lookupResult.id}`, { state: { ticket: buildTicket(lookupResult) } })}>
                       <Ticket className="w-4 h-4 mr-2" />Ver meu Ingresso
                     </Button>
