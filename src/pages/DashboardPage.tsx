@@ -1,10 +1,16 @@
 import { useEvent } from '@/contexts/EventContext';
-import { PRESENCE_LABELS, PAYMENT_LABELS, PRESENCE_COLORS, PAYMENT_COLORS, isNaoInscrito } from '@/types/event';
-import { Users, UserCheck, Clock, XCircle, ListOrdered, CheckCircle2, DollarSign, TrendingUp, Percent, UserPlus, Baby } from 'lucide-react';
+import { PRESENCE_LABELS, PAYMENT_LABELS, PRESENCE_COLORS, PAYMENT_COLORS, isNaoInscrito, SITUACAO_LABELS, SITUACAO_COLORS, situacaoPresenca } from '@/types/event';
+import { useNavigate, useParams } from 'react-router-dom';
+import { Users, UserCheck, Clock, XCircle, ListOrdered, CheckCircle2, DollarSign, TrendingUp, Percent, UserPlus, UserX, ClipboardList } from 'lucide-react';
 
-function StatCard({ icon: Icon, label, value, sub, color }: { icon: any; label: string; value: string | number; sub?: string; color?: string }) {
+function StatCard({ icon: Icon, label, value, sub, color, onClick }: { icon: any; label: string; value: string | number; sub?: string; color?: string; onClick?: () => void }) {
+  const clickable = !!onClick;
   return (
-    <div className="bg-card rounded-xl p-5 shadow-card animate-fade-in border border-border">
+    <div
+      onClick={onClick}
+      role={clickable ? 'button' : undefined}
+      className={`bg-card rounded-xl p-5 shadow-card animate-fade-in border border-border ${clickable ? 'cursor-pointer transition-colors hover:border-primary/40 hover:bg-muted/40' : ''}`}
+    >
       <div className="flex items-center gap-3 mb-3">
         <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${color || 'bg-primary/10 text-primary'}`}>
           <Icon className="w-5 h-5" />
@@ -23,6 +29,12 @@ function formatCurrency(v: number) {
 
 export default function DashboardPage() {
   const { event, stats } = useEvent();
+  const navigate = useNavigate();
+  const { eventId } = useParams<{ eventId: string }>();
+  const goGuests = (situacao: string) => navigate(`/admin/events/${eventId}/guests?situacao=${situacao}`);
+  const goCheckin = () => navigate(`/admin/events/${eventId}/checkin`);
+  const goFinancial = () => navigate(`/admin/events/${eventId}/financial`);
+
   const recentConfirmations = [...event.guests]
     .filter(g => !isNaoInscrito(g) && g.confirmedAt)
     .sort((a, b) => new Date(b.confirmedAt!).getTime() - new Date(a.confirmedAt!).getTime())
@@ -38,28 +50,36 @@ export default function DashboardPage() {
         <p className="text-muted-foreground mt-1">{event.name || 'Configure seu evento nas configurações'}</p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        <StatCard icon={Users} label="Total" value={stats.totalGuests} sub={`${stats.totalWithCompanions} com acomp.`} />
-        <StatCard icon={UserCheck} label="Confirmados" value={stats.confirmed} color="bg-success/10 text-success" />
-        <StatCard icon={Clock} label="Pendentes" value={stats.pending} color="bg-warning/10 text-warning" />
-        <StatCard icon={XCircle} label="Cancelados" value={stats.cancelled} color="bg-destructive/10 text-destructive" />
-        <StatCard icon={ListOrdered} label="Lista de Espera" value={stats.waitlist} color="bg-info/10 text-info" />
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={DollarSign} label="Arrecadado" value={formatCurrency(stats.totalReceived)} color="bg-success/10 text-success" />
-        <StatCard icon={TrendingUp} label="Pendente" value={formatCurrency(stats.totalPending)} color="bg-warning/10 text-warning" />
-        <StatCard icon={Percent} label="Taxa Confirmação" value={`${stats.confirmationRate}%`} />
-        <StatCard icon={CheckCircle2} label="Compareceram" value={stats.attended} color="bg-primary/10 text-primary" />
-      </div>
-
+      {/* Jornada: Inscrito -> Confirmado -> Compareceu */}
       <div>
-        <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Presença</h2>
+        <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Inscrições</h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <StatCard icon={Users} label="Total na lista" value={stats.totalGuests} sub={`${stats.totalWithCompanions} com acomp.`} onClick={() => goGuests('all')} />
+          <StatCard icon={UserCheck} label="Confirmados" value={stats.confirmados} sub="pagos / isentos" color="bg-success/10 text-success" onClick={() => goGuests('confirmado')} />
+          <StatCard icon={Clock} label="Inscritos" value={stats.inscritos} sub="aguardando pagamento" color="bg-warning/10 text-warning" onClick={() => goGuests('inscrito')} />
+          <StatCard icon={ListOrdered} label="Lista de espera" value={stats.waitlist} color="bg-info/10 text-info" onClick={() => goGuests('lista_espera')} />
+          <StatCard icon={XCircle} label="Cancelados" value={stats.cancelled} color="bg-destructive/10 text-destructive" onClick={() => goGuests('cancelado')} />
+        </div>
+      </div>
+
+      {/* Presença no dia */}
+      <div>
+        <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">No dia</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard icon={Users} label="Presentes (total)" value={stats.presentesTotal} sub="inscritos + não inscritos" color="bg-primary/10 text-primary" />
-          <StatCard icon={UserPlus} label="Não inscritos" value={stats.naoInscritosTotal} color="bg-accent/20 text-accent-foreground" />
-          <StatCard icon={UserPlus} label="Não inscritos: adultos" value={stats.naoInscritosAdultos} />
-          <StatCard icon={Baby} label="Não inscritos: crianças" value={stats.naoInscritosCriancas} />
+          <StatCard icon={CheckCircle2} label="Compareceram" value={stats.compareceram} color="bg-primary/10 text-primary" onClick={() => goGuests('compareceu')} />
+          <StatCard icon={UserX} label="Ausentes" value={stats.ausentes} sub="esperados sem check-in" color="bg-destructive/10 text-destructive" onClick={() => goGuests('ausentes')} />
+          <StatCard icon={Users} label="Presentes (total)" value={stats.presentesTotal} sub="inscritos + não inscritos" color="bg-primary/10 text-primary" onClick={goCheckin} />
+          <StatCard icon={UserPlus} label="Não inscritos" value={stats.naoInscritosTotal} color="bg-accent/20 text-accent-foreground" onClick={goCheckin} />
+        </div>
+      </div>
+
+      {/* Financeiro */}
+      <div>
+        <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Financeiro</h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <StatCard icon={DollarSign} label="Arrecadado" value={formatCurrency(stats.totalReceived)} color="bg-success/10 text-success" onClick={goFinancial} />
+          <StatCard icon={TrendingUp} label="Pendente" value={formatCurrency(stats.totalPending)} color="bg-warning/10 text-warning" onClick={goFinancial} />
+          <StatCard icon={Percent} label="Taxa de pagamento" value={`${stats.paymentRate}%`} onClick={goFinancial} />
         </div>
       </div>
 
@@ -76,8 +96,8 @@ export default function DashboardPage() {
                     <p className="text-sm font-medium">{g.firstName} {g.lastName}</p>
                     <p className="text-xs text-muted-foreground">{new Date(g.confirmedAt!).toLocaleString('pt-BR')}</p>
                   </div>
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${PRESENCE_COLORS[g.presenceStatus]}`}>
-                    {PRESENCE_LABELS[g.presenceStatus]}
+                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${SITUACAO_COLORS[situacaoPresenca(g)]}`}>
+                    {SITUACAO_LABELS[situacaoPresenca(g)]}
                   </span>
                 </div>
               ))}
