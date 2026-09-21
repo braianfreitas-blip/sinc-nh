@@ -3,14 +3,23 @@ import { useEvent } from '@/contexts/EventContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { PRESENCE_LABELS, PRESENCE_COLORS, PAYMENT_LABELS, PAYMENT_COLORS } from '@/types/event';
-import { Search, UserCheck, CheckCircle2, ScanLine } from 'lucide-react';
+import { Search, UserCheck, CheckCircle2, ScanLine, Loader2, XCircle, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import QRScanner from '@/components/QRScanner';
+
+type ScanStatus = 'saving' | 'success' | 'already' | 'error' | 'invalid';
+interface ScanResult {
+  status: ScanStatus;
+  name?: string;
+  detail?: string;
+  guestId?: string;
+}
 
 export default function CheckinPage() {
   const { event, updateGuest, getGuest } = useEvent();
   const [search, setSearch] = useState('');
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [scanResult, setScanResult] = useState<ScanResult | null>(null);
 
   const guests = event.guests.filter(g => {
     if (!search) return true;
@@ -19,9 +28,31 @@ export default function CheckinPage() {
 
   const checkedIn = event.guests.filter(g => g.checkedIn).length;
 
-  const handleCheckIn = (id: string, name: string) => {
+  // Grava o check-in e só confirma quando salvou de verdade no banco.
+  const persistCheckIn = (id: string) =>
     updateGuest(id, { checkedIn: true, checkedInAt: new Date().toISOString(), presenceStatus: 'attended' });
-    toast.success(`Check-in de ${name} realizado!`);
+
+  // Check-in manual (botão da lista): confirma pelo resultado da gravação.
+  const manualCheckIn = async (id: string, name: string) => {
+    const { error } = await persistCheckIn(id);
+    if (error) toast.error(`Não foi possível salvar o check-in de ${name}. Verifique a conexão e tente de novo.`);
+    else toast.success(`Check-in de ${name} realizado!`);
+  };
+
+  // Check-in via QR: mostra a confirmação grande e só marca sucesso se salvou.
+  const runScanCheckIn = async (id: string, fullName: string, companions: number) => {
+    setScanResult({ status: 'saving', name: fullName });
+    const { error } = await persistCheckIn(id);
+    if (error) {
+      setScanResult({ status: 'error', name: fullName, guestId: id, detail: 'Não foi possível salvar. Toque em "Tentar de novo".' });
+    } else {
+      setScanResult({ status: 'success', name: fullName, detail: companions > 0 ? `+${companions} acompanhante(s)` : undefined });
+    }
+  };
+
+  const scanNext = () => {
+    setScanResult(null);
+    setScannerOpen(true);
   };
 
   const handleScan = (decoded: string) => {
@@ -43,32 +74,38 @@ export default function CheckinPage() {
     }
 
     if (!guestId) {
-      toast.error('QR Code inválido.');
+      setScanResult({ status: 'invalid', detail: 'QR Code inválido. Tente escanear novamente.' });
       return;
     }
 
     if (eventId && eventId !== event.id) {
-      toast.error('Este ingresso é de outro evento.');
+      setScanResult({ status: 'invalid', detail: 'Este ingresso é de outro evento.' });
       return;
     }
 
     const guest = getGuest(guestId);
     if (!guest) {
-      toast.error('Convidado não encontrado neste evento.');
+      setScanResult({ status: 'invalid', detail: 'Convidado não encontrado neste evento.' });
       return;
     }
 
+    const fullName = `${guest.firstName} ${guest.lastName}`;
+
     if (guest.presenceStatus === 'cancelled') {
-      toast.error(`${guest.firstName} cancelou a presença.`);
+      setScanResult({ status: 'invalid', name: fullName, detail: 'Este convidado cancelou a presença.' });
       return;
     }
 
     if (guest.checkedIn) {
-      toast.info(`${guest.firstName} ${guest.lastName} já fez check-in.`);
+      setScanResult({
+        status: 'already',
+        name: fullName,
+        detail: guest.checkedInAt ? `Já fez check-in às ${new Date(guest.checkedInAt).toLocaleTimeString('pt-BR')}` : 'Este convidado já fez check-in.',
+      });
       return;
     }
 
-    handleCheckIn(guest.id, guest.firstName);
+    runScanCheckIn(guest.id, fullName, guest.companions);
   };
 
   return (
@@ -133,7 +170,7 @@ export default function CheckinPage() {
               </div>
             </div>
             {!g.checkedIn ? (
-              <Button onClick={() => handleCheckIn(g.id, g.firstName)} size="sm">
+              <Button onClick={() => manualCheckIn(g.id, g.firstName)} size="sm">
                 <UserCheck className="w-4 h-4 mr-1" />Check-in
               </Button>
             ) : (
@@ -153,6 +190,92 @@ export default function CheckinPage() {
       </div>
 
       {scannerOpen && <QRScanner onScan={handleScan} onClose={() => setScannerOpen(false)} />}
+
+      {scanResult && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-background/95 backdrop-blur">
+          <div className="w-full max-w-sm text-center space-y-5">
+            {scanResult.status === 'saving' && (
+              <>
+                <Loader2 className="w-16 h-16 text-primary mx-auto animate-spin" />
+                <h2 className="text-2xl font-bold">Salvando check-in...</h2>
+                {scanResult.name && <p className="text-lg font-medium">{scanResult.name}</p>}
+              </>
+            )}
+
+            {scanResult.status === 'success' && (
+              <>
+                <div className="w-24 h-24 rounded-full bg-success/15 flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="w-14 h-14 text-success" />
+                </div>
+                <h2 className="text-2xl font-bold text-success">Check-in realizado!</h2>
+                {scanResult.name && <p className="text-xl font-semibold">{scanResult.name}</p>}
+                {scanResult.detail && <p className="text-muted-foreground">{scanResult.detail}</p>}
+                <div className="space-y-2 pt-2">
+                  <Button onClick={scanNext} className="w-full h-12 text-base" size="lg">
+                    <ScanLine className="w-5 h-5 mr-2" />Escanear próximo
+                  </Button>
+                  <Button variant="outline" className="w-full" onClick={() => setScanResult(null)}>Concluir</Button>
+                </div>
+              </>
+            )}
+
+            {scanResult.status === 'already' && (
+              <>
+                <div className="w-24 h-24 rounded-full bg-warning/15 flex items-center justify-center mx-auto">
+                  <Clock className="w-14 h-14 text-warning" />
+                </div>
+                <h2 className="text-2xl font-bold text-warning">Já fez check-in</h2>
+                {scanResult.name && <p className="text-xl font-semibold">{scanResult.name}</p>}
+                {scanResult.detail && <p className="text-muted-foreground">{scanResult.detail}</p>}
+                <div className="space-y-2 pt-2">
+                  <Button onClick={scanNext} className="w-full h-12 text-base" size="lg">
+                    <ScanLine className="w-5 h-5 mr-2" />Escanear próximo
+                  </Button>
+                  <Button variant="outline" className="w-full" onClick={() => setScanResult(null)}>Concluir</Button>
+                </div>
+              </>
+            )}
+
+            {scanResult.status === 'error' && (
+              <>
+                <div className="w-24 h-24 rounded-full bg-destructive/15 flex items-center justify-center mx-auto">
+                  <XCircle className="w-14 h-14 text-destructive" />
+                </div>
+                <h2 className="text-2xl font-bold text-destructive">Não salvou</h2>
+                {scanResult.name && <p className="text-xl font-semibold">{scanResult.name}</p>}
+                {scanResult.detail && <p className="text-muted-foreground">{scanResult.detail}</p>}
+                <div className="space-y-2 pt-2">
+                  <Button
+                    onClick={() => { if (scanResult.guestId && scanResult.name) runScanCheckIn(scanResult.guestId, scanResult.name, 0); }}
+                    className="w-full h-12 text-base"
+                    size="lg"
+                  >
+                    Tentar de novo
+                  </Button>
+                  <Button variant="outline" className="w-full" onClick={() => setScanResult(null)}>Fechar</Button>
+                </div>
+              </>
+            )}
+
+            {scanResult.status === 'invalid' && (
+              <>
+                <div className="w-24 h-24 rounded-full bg-destructive/15 flex items-center justify-center mx-auto">
+                  <XCircle className="w-14 h-14 text-destructive" />
+                </div>
+                <h2 className="text-2xl font-bold text-destructive">Ingresso inválido</h2>
+                {scanResult.name && <p className="text-xl font-semibold">{scanResult.name}</p>}
+                {scanResult.detail && <p className="text-muted-foreground">{scanResult.detail}</p>}
+                <div className="space-y-2 pt-2">
+                  <Button onClick={scanNext} className="w-full h-12 text-base" size="lg">
+                    <ScanLine className="w-5 h-5 mr-2" />Escanear próximo
+                  </Button>
+                  <Button variant="outline" className="w-full" onClick={() => setScanResult(null)}>Fechar</Button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
