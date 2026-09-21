@@ -2,6 +2,16 @@ export type PresenceStatus = 'pending' | 'confirmed' | 'cancelled' | 'waitlist' 
 export type PaymentStatus = 'not_applicable' | 'pending' | 'paid' | 'exempt' | 'refunded' | 'partial';
 export type PaymentMethod = 'card' | 'pix' | 'cash' | 'transfer' | 'other';
 
+// "Não inscritos": pessoas que compareceram sem inscrição prévia. São contadas
+// no check-in com um toque. Ficam gravadas como convidados marcados no campo
+// notes (sem mexer no banco), e são EXCLUÍDAS das métricas de inscritos.
+export type WalkinCategoria = 'adulto' | 'crianca';
+export const NAO_INSCRITO_TAG = 'nao-inscrito';
+export const isNaoInscrito = (g: { notes?: string }) => (g.notes || '').startsWith(NAO_INSCRITO_TAG);
+export const naoInscritoCategoria = (g: { notes?: string }): WalkinCategoria =>
+  (g.notes || '').includes('crianca') ? 'crianca' : 'adulto';
+export const naoInscritoNotes = (categoria: WalkinCategoria) => `${NAO_INSCRITO_TAG}:${categoria}`;
+
 export interface Guest {
   id: string;
   firstName: string;
