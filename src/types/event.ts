@@ -12,6 +12,39 @@ export const naoInscritoCategoria = (g: { notes?: string }): WalkinCategoria =>
   (g.notes || '').includes('crianca') ? 'crianca' : 'adulto';
 export const naoInscritoNotes = (categoria: WalkinCategoria) => `${NAO_INSCRITO_TAG}:${categoria}`;
 
+// Jornada única do convidado, derivada de presença + pagamento:
+// Inscrito (na lista, ainda não pagou) -> Confirmado (pagou ou é isento) -> Compareceu (check-in).
+// Lista de espera e Cancelado são ramificações. Pagamento parcial ainda é Inscrito.
+export type SituacaoPresenca = 'inscrito' | 'confirmado' | 'compareceu' | 'lista_espera' | 'cancelado';
+
+export function situacaoPresenca(g: { presenceStatus: PresenceStatus; paymentStatus: PaymentStatus; checkedIn?: boolean }): SituacaoPresenca {
+  if (g.presenceStatus === 'cancelled') return 'cancelado';
+  if (g.presenceStatus === 'waitlist') return 'lista_espera';
+  if (g.checkedIn || g.presenceStatus === 'attended') return 'compareceu';
+  const pago = g.paymentStatus === 'paid' || g.paymentStatus === 'exempt' || g.paymentStatus === 'not_applicable';
+  return pago ? 'confirmado' : 'inscrito';
+}
+
+// Pago/isento = vaga garantida (Confirmado). Usado p/ liberar ingresso.
+export const isConfirmado = (g: { paymentStatus: PaymentStatus }) =>
+  g.paymentStatus === 'paid' || g.paymentStatus === 'exempt' || g.paymentStatus === 'not_applicable';
+
+export const SITUACAO_LABELS: Record<SituacaoPresenca, string> = {
+  inscrito: 'Inscrito',
+  confirmado: 'Confirmado',
+  compareceu: 'Compareceu',
+  lista_espera: 'Lista de espera',
+  cancelado: 'Cancelado',
+};
+
+export const SITUACAO_COLORS: Record<SituacaoPresenca, string> = {
+  inscrito: 'bg-warning/10 text-warning',
+  confirmado: 'bg-success/10 text-success',
+  compareceu: 'bg-primary/10 text-primary',
+  lista_espera: 'bg-info/10 text-info',
+  cancelado: 'bg-destructive/10 text-destructive',
+};
+
 export interface Guest {
   id: string;
   firstName: string;
