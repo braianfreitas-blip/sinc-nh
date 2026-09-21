@@ -101,6 +101,19 @@ export default function TicketPage() {
   }
 
   const { guest, event } = data;
+
+  // Ingresso só fica disponível quando Confirmado (pago ou isento).
+  const pagamentoOk = !event.is_paid || ['paid', 'exempt', 'not_applicable'].includes(guest.payment_status);
+  if (!pagamentoOk) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6">
+        <Ticket className="w-12 h-12 text-muted-foreground" />
+        <p className="text-muted-foreground text-center">Seu ingresso ficará disponível assim que o pagamento for confirmado.</p>
+        <Button asChild variant="outline"><Link to="/"><ArrowLeft className="w-4 h-4 mr-2" />Voltar</Link></Button>
+      </div>
+    );
+  }
+
   const eventPath = event.slug || event.id;
   const qrPayload = JSON.stringify({
     t: 'ticket',
