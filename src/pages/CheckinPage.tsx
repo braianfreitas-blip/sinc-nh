@@ -305,7 +305,7 @@ export default function CheckinPage() {
           onChange={e => setSoPendentes(e.target.checked)}
           className="w-4 h-4 accent-primary"
         />
-        Ver só quem ainda não veio
+        Listar check-in pendentes
       </label>
 
       <div className="space-y-2">
