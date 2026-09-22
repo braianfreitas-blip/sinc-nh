@@ -1,30 +1,51 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- TODO: Set the document title to the name of your application -->
-    <title>Confirmação do Sinc</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Sinc APP</title>
     <meta name="description" content="Confirmação de Convidados do Sinc">
     <meta name="author" content="Lovable" />
 
-    <!-- TODO: Update og:title to match your application name -->
-    
-    
+    <!-- App instalável (PWA) -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#00b200" />
+
+    <!-- Ícones -->
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!-- iPhone / iPad: abrir em tela cheia com nome próprio -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Sinc APP" />
+    <meta name="mobile-web-app-capable" content="yes" />
+
     <meta property="og:type" content="website" />
     <meta property="og:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/82c38e41-3b76-4b62-b21d-55f0514186cb/id-preview-b4796f55--be46d593-126b-4d70-a9be-50f0d33e0c9f.lovable.app-1775170379037.png">
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@Lovable" />
     <meta name="twitter:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/82c38e41-3b76-4b62-b21d-55f0514186cb/id-preview-b4796f55--be46d593-126b-4d70-a9be-50f0d33e0c9f.lovable.app-1775170379037.png">
-    <meta property="og:title" content="Confirmação do Sinc">
-  <meta name="twitter:title" content="Confirmação do Sinc">
-  <meta property="og:description" content="Confirmação de Convidados do Sinc">
-  <meta name="twitter:description" content="Confirmação de Convidados do Sinc">
-</head>
+    <meta property="og:title" content="Sinc APP">
+    <meta name="twitter:title" content="Sinc APP">
+    <meta property="og:description" content="Confirmação de Convidados do Sinc">
+    <meta name="twitter:description" content="Confirmação de Convidados do Sinc">
+  </head>
 
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+
+    <!-- Registra o service worker para o app poder ser instalado na tela inicial -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/sw.js').catch(function (err) {
+            console.log('Falha ao registrar o service worker:', err);
+          });
+        });
+      }
+    </script>
   </body>
 </html>
