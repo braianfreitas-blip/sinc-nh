@@ -1,7 +1,8 @@
 import { useEvent } from '@/contexts/EventContext';
 import { PRESENCE_LABELS, PAYMENT_LABELS, PRESENCE_COLORS, PAYMENT_COLORS, isNaoInscrito, SITUACAO_LABELS, SITUACAO_COLORS, situacaoPresenca } from '@/types/event';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Users, UserCheck, Clock, XCircle, ListOrdered, CheckCircle2, DollarSign, TrendingUp, Percent, UserPlus, UserX, ClipboardList } from 'lucide-react';
+import { getEventDays, formatDayLine } from '@/lib/eventDays';
+import { Users, UserCheck, Clock, XCircle, ListOrdered, CheckCircle2, DollarSign, TrendingUp, Percent, UserPlus, UserX, ClipboardList, CalendarDays, HeartHandshake } from 'lucide-react';
 
 function StatCard({ icon: Icon, label, value, sub, color, onClick }: { icon: any; label: string; value: string | number; sub?: string; color?: string; onClick?: () => void }) {
   const clickable = !!onClick;
@@ -35,6 +36,16 @@ export default function DashboardPage() {
   const goCheckin = () => navigate(`/admin/events/${eventId}/checkin`);
   const goFinancial = () => navigate(`/admin/events/${eventId}/financial`);
 
+  // Eventos de vários dias: quantas pessoas vieram em cada dia.
+  const eventDays = getEventDays(event);
+  const multiDay = eventDays.length > 1;
+  const voluntary = event.isPaid && event.contributionMode === 'voluntary';
+  const porDia = eventDays.map(d => {
+    const inscritos = event.guests.filter(g => !isNaoInscrito(g) && g.checkinDays?.[d.date]).length;
+    const avulsos = event.guests.filter(g => isNaoInscrito(g) && g.checkinDays?.[d.date]).length;
+    return { day: d, inscritos, avulsos, total: inscritos + avulsos };
+  });
+
   const recentConfirmations = [...event.guests]
     .filter(g => !isNaoInscrito(g) && g.confirmedAt)
     .sort((a, b) => new Date(b.confirmedAt!).getTime() - new Date(a.confirmedAt!).getTime())
@@ -56,7 +67,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           <StatCard icon={Users} label="Total na lista" value={stats.totalGuests} sub={`${stats.totalWithCompanions} com acomp.`} onClick={() => goGuests('all')} />
           <StatCard icon={UserCheck} label="Confirmados" value={stats.confirmados} sub="pagos / isentos" color="bg-success/10 text-success" onClick={() => goGuests('confirmado')} />
-          <StatCard icon={Clock} label="Inscritos" value={stats.inscritos} sub="aguardando pagamento" color="bg-warning/10 text-warning" onClick={() => goGuests('inscrito')} />
+          <StatCard icon={Clock} label="Inscritos" value={stats.inscritos} sub={voluntary ? 'pagamento pendente' : 'aguardando pagamento'} color="bg-warning/10 text-warning" onClick={() => goGuests('inscrito')} />
           <StatCard icon={ListOrdered} label="Lista de espera" value={stats.waitlist} color="bg-info/10 text-info" onClick={() => goGuests('lista_espera')} />
           <StatCard icon={XCircle} label="Cancelados" value={stats.cancelled} color="bg-destructive/10 text-destructive" onClick={() => goGuests('cancelado')} />
         </div>
@@ -73,12 +84,35 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {multiDay && (
+        <div>
+          <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Presença por dia</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {porDia.map((p, i) => (
+              <StatCard
+                key={p.day.date}
+                icon={CalendarDays}
+                label={`Dia ${i + 1}`}
+                value={p.total}
+                sub={`${formatDayLine(p.day)} · ${p.inscritos} inscritos${p.avulsos ? ` + ${p.avulsos} não inscritos` : ''}`}
+                color="bg-primary/10 text-primary"
+                onClick={goCheckin}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Financeiro */}
       <div>
         <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Financeiro</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <StatCard icon={DollarSign} label="Arrecadado" value={formatCurrency(stats.totalReceived)} color="bg-success/10 text-success" onClick={goFinancial} />
-          <StatCard icon={TrendingUp} label="Pendente" value={formatCurrency(stats.totalPending)} color="bg-warning/10 text-warning" onClick={goFinancial} />
+          {voluntary ? (
+            <StatCard icon={HeartHandshake} label="Contribuições a receber" value={formatCurrency(stats.totalPledged)} sub={`${stats.pledgedCount} pessoa(s) escolheram um valor`} color="bg-info/10 text-info" onClick={goFinancial} />
+          ) : (
+            <StatCard icon={TrendingUp} label="Pendente" value={formatCurrency(stats.totalPending)} color="bg-warning/10 text-warning" onClick={goFinancial} />
+          )}
           <StatCard icon={Percent} label="Taxa de pagamento" value={`${stats.paymentRate}%`} onClick={goFinancial} />
         </div>
       </div>

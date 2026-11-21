@@ -1,5 +1,32 @@
 export type PresenceStatus = 'pending' | 'confirmed' | 'cancelled' | 'waitlist' | 'attended';
-export type PaymentStatus = 'not_applicable' | 'pending' | 'paid' | 'exempt' | 'refunded' | 'partial';
+// 'pledged' = contribuição voluntária escolhida pela pessoa, ainda não recebida.
+// A vaga já está garantida (conta como Confirmado); o admin marca como pago ao receber.
+export type PaymentStatus = 'not_applicable' | 'pending' | 'paid' | 'exempt' | 'refunded' | 'partial' | 'pledged';
+export type ContributionMode = 'fixed' | 'voluntary';
+// Como o Pix é cobrado: 'manual' = chave PIX copiada e a equipe confirma;
+// 'mercadopago' = Pix gerado e confirmado automaticamente; 'stripe' = futuro.
+export type PaymentProvider = 'manual' | 'mercadopago' | 'stripe';
+export const PAYMENT_PROVIDER_LABELS: Record<PaymentProvider, string> = {
+  manual: 'Manual (chave PIX)',
+  mercadopago: 'Mercado Pago',
+  stripe: 'Stripe',
+};
+// Cortesias ficam marcadas no campo notes como "cortesia:CODIGO".
+export const isCortesia = (g: { notes?: string }) => (g.notes || '').startsWith('cortesia:');
+
+// Um dia do evento (eventos de vários dias, ex.: seminário).
+// Um item da programação do dia (ex.: "19:00 Abertura", "20:00 Sessão 1").
+export interface EventSession {
+  time: string;   // HH:MM (opcional)
+  title: string;
+}
+
+export interface EventDay {
+  date: string;   // AAAA-MM-DD
+  start: string;  // HH:MM (opcional, pode ser '')
+  end?: string;   // HH:MM (opcional)
+  sessions?: EventSession[];
+}
 export type PaymentMethod = 'card' | 'pix' | 'cash' | 'transfer' | 'other';
 
 // "Não inscritos": pessoas que compareceram sem inscrição prévia. São contadas
@@ -21,13 +48,15 @@ export function situacaoPresenca(g: { presenceStatus: PresenceStatus; paymentSta
   if (g.presenceStatus === 'cancelled') return 'cancelado';
   if (g.presenceStatus === 'waitlist') return 'lista_espera';
   if (g.checkedIn || g.presenceStatus === 'attended') return 'compareceu';
-  const pago = g.paymentStatus === 'paid' || g.paymentStatus === 'exempt' || g.paymentStatus === 'not_applicable';
+  const pago = isConfirmado(g);
   return pago ? 'confirmado' : 'inscrito';
 }
 
 // Pago/isento = vaga garantida (Confirmado). Usado p/ liberar ingresso.
-export const isConfirmado = (g: { paymentStatus: PaymentStatus }) =>
-  g.paymentStatus === 'paid' || g.paymentStatus === 'exempt' || g.paymentStatus === 'not_applicable';
+// Contribuição voluntária prometida ('pledged') também garante a vaga.
+export function isConfirmado(g: { paymentStatus: PaymentStatus }) {
+  return g.paymentStatus === 'paid' || g.paymentStatus === 'exempt' || g.paymentStatus === 'not_applicable' || g.paymentStatus === 'pledged';
+}
 
 export const SITUACAO_LABELS: Record<SituacaoPresenca, string> = {
   inscrito: 'Inscrito',
@@ -61,7 +90,11 @@ export interface Guest {
   paidAt?: string;
   paymentMethod?: PaymentMethod;
   checkedIn: boolean;
+  // Eventos de vários dias: data do dia (AAAA-MM-DD) -> horário do check-in.
+  checkinDays: Record<string, string>;
   invitedBy?: string;
+  // Pessoas inscritas juntas (ex.: família) têm o mesmo groupId; o responsável tem id = groupId.
+  groupId?: string;
   checkedInAt?: string;
   createdAt: string;
 }
@@ -98,6 +131,12 @@ export interface EventData {
   coverUrl?: string;
   pixKey?: string;
   useTickets: boolean;
+  // Vazio = evento de um dia (usa date/time). Com itens = evento de vários dias.
+  days: EventDay[];
+  contributionMode: ContributionMode;
+  suggestedAmounts: number[];
+  contributionMessage?: string;
+  paymentProvider: PaymentProvider;
   guests: Guest[];
   payments: PaymentRecord[];
   createdAt: string;
@@ -115,9 +154,10 @@ export const PAYMENT_LABELS: Record<PaymentStatus, string> = {
   not_applicable: 'Não se aplica',
   pending: 'Pendente',
   paid: 'Pago',
-  exempt: 'Isento',
+  exempt: 'Isento / Cortesia',
   refunded: 'Estornado',
   partial: 'Parcial',
+  pledged: 'Contribuição a receber',
 };
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
@@ -143,4 +183,5 @@ export const PAYMENT_COLORS: Record<PaymentStatus, string> = {
   exempt: 'bg-info/10 text-info',
   refunded: 'bg-destructive/10 text-destructive',
   partial: 'bg-accent/20 text-accent-foreground',
+  pledged: 'bg-info/10 text-info',
 };

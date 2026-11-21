@@ -17,6 +17,7 @@ function formatCurrency(v: number) {
 
 export default function GuestListPage() {
   const { event, addGuest, updateGuest, removeGuest, addPayment } = useEvent();
+  const voluntary = event.isPaid && event.contributionMode === 'voluntary';
   const [searchParams] = useSearchParams();
   const [search, setSearch] = useState('');
   // Filtro por situação (Inscrito/Confirmado/Compareceu/Ausentes/...). Pode vir
@@ -193,8 +194,8 @@ export default function GuestListPage() {
           addGuest({
             ...data,
             presenceStatus: 'pending',
-            paymentStatus: event.isPaid ? 'pending' : 'exempt',
-            amountDue: event.isPaid ? event.ticketPrice * (1 + data.companions) : 0,
+            paymentStatus: voluntary ? 'not_applicable' : event.isPaid ? 'pending' : 'exempt',
+            amountDue: event.isPaid && !voluntary ? event.ticketPrice * (1 + data.companions) : 0,
             amountPaid: 0,
             checkedIn: false,
           });
@@ -202,6 +203,7 @@ export default function GuestListPage() {
           toast.success('Convidado adicionado!');
         }}
         isPaid={event.isPaid}
+        voluntary={voluntary}
         ticketPrice={event.ticketPrice}
         allowCompanions={event.allowCompanions}
         maxCompanions={event.maxCompanions}
@@ -219,6 +221,7 @@ export default function GuestListPage() {
             toast.success('Convidado atualizado!');
           }}
           isPaid={event.isPaid}
+          voluntary={voluntary}
           ticketPrice={event.ticketPrice}
           allowCompanions={event.allowCompanions}
           maxCompanions={event.maxCompanions}
@@ -233,9 +236,11 @@ export default function GuestListPage() {
           onClose={() => setShowPayment(null)}
           onSave={(amount, method, notes) => {
             const newPaid = showPayment.amountPaid + amount;
-            const status = newPaid >= showPayment.amountDue ? 'paid' : 'partial';
+            // Contribuição voluntária: qualquer valor recebido conta como pago.
+            const status = voluntary || newPaid >= showPayment.amountDue ? 'paid' : 'partial';
             updateGuest(showPayment.id, {
               amountPaid: newPaid,
+              ...(voluntary ? { amountDue: Math.max(showPayment.amountDue, newPaid) } : {}),
               paymentStatus: status as any,
               paidAt: new Date().toISOString(),
               paymentMethod: method,
@@ -257,12 +262,13 @@ export default function GuestListPage() {
   );
 }
 
-function GuestFormDialog({ open, onClose, onSave, initial, isPaid, ticketPrice, allowCompanions, maxCompanions }: {
+function GuestFormDialog({ open, onClose, onSave, initial, isPaid, voluntary = false, ticketPrice, allowCompanions, maxCompanions }: {
   open: boolean;
   onClose: () => void;
   onSave: (data: any) => void;
   initial?: Guest;
   isPaid: boolean;
+  voluntary?: boolean;
   ticketPrice: number;
   allowCompanions: boolean;
   maxCompanions: number;
@@ -274,7 +280,7 @@ function GuestFormDialog({ open, onClose, onSave, initial, isPaid, ticketPrice, 
   const [notes, setNotes] = useState(initial?.notes || '');
   const [invitedBy, setInvitedBy] = useState(initial?.invitedBy || '');
   const [presenceStatus, setPresenceStatus] = useState((initial?.presenceStatus === 'pending' ? 'confirmed' : initial?.presenceStatus) || 'confirmed');
-  const [paymentStatus, setPaymentStatus] = useState(initial?.paymentStatus || (isPaid ? 'pending' : 'exempt'));
+  const [paymentStatus, setPaymentStatus] = useState(initial?.paymentStatus || (voluntary ? 'not_applicable' : isPaid ? 'pending' : 'exempt'));
 
   const handleSubmit = () => {
     if (!firstName.trim() || !lastName.trim()) {
@@ -290,7 +296,7 @@ function GuestFormDialog({ open, onClose, onSave, initial, isPaid, ticketPrice, 
       invitedBy: invitedBy.trim(),
       presenceStatus,
       paymentStatus,
-      amountDue: isPaid ? ticketPrice * (1 + companions) : (initial?.amountDue || 0),
+      amountDue: isPaid && !voluntary ? ticketPrice * (1 + companions) : (initial?.amountDue || 0),
     });
   };
 

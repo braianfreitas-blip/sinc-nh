@@ -9,6 +9,8 @@ import { Plus, CalendarDays, MapPin, Users, Trash2, UserPlus, Link2 } from 'luci
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import sincLogo from '@/assets/sinc-logo.png';
+import { getEventDays, parseDays, formatDateRange } from '@/lib/eventDays';
+import type { EventDay } from '@/types/event';
 
 interface EventSummary {
   id: string;
@@ -18,6 +20,7 @@ interface EventSummary {
   time: string;
   location: string;
   created_at: string;
+  days?: EventDay[];
   guest_count?: number;
 }
 
@@ -34,7 +37,7 @@ export default function EventsListPage() {
   const loadEvents = async () => {
     const { data, error } = await supabase
       .from('events')
-      .select('id, name, date, time, location, created_at, slug')
+      .select('id, name, date, time, location, created_at, slug, days')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -49,7 +52,7 @@ export default function EventsListPage() {
         .from('guests')
         .select('*', { count: 'exact', head: true })
         .eq('event_id', ev.id);
-      eventsWithCounts.push({ ...ev, guest_count: count || 0 });
+      eventsWithCounts.push({ ...ev, days: parseDays((ev as any).days), guest_count: count || 0 });
     }
 
     setEvents(eventsWithCounts);
@@ -188,10 +191,11 @@ export default function EventsListPage() {
                 </div>
                 <h3 className="font-display text-lg font-semibold mb-2">{ev.name}</h3>
                 <div className="space-y-1 text-sm text-muted-foreground">
-                  {ev.date && (
+                  {getEventDays(ev).length > 0 && (
                     <p className="flex items-center gap-2">
                       <CalendarDays className="w-4 h-4" />
-                      {new Date(ev.date + 'T00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      {formatDateRange(getEventDays(ev))}
+                      {getEventDays(ev).length > 1 && <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">{getEventDays(ev).length} dias</span>}
                     </p>
                   )}
                   {ev.location && (

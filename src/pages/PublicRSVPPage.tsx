@@ -4,11 +4,15 @@ import { useEvent } from '@/contexts/EventContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { MapPin, Clock, CheckCircle2, AlertCircle, Users, CalendarDays, XCircle, Search, CreditCard, Navigation2, Ticket } from 'lucide-react';
+import { MapPin, Clock, CheckCircle2, AlertCircle, Users, CalendarDays, XCircle, Search, CreditCard, Navigation2, Ticket, HeartHandshake } from 'lucide-react';
 import { PAYMENT_LABELS, Guest, isNaoInscrito, isConfirmado } from '@/types/event';
 import { toast } from 'sonner';
 import sincLogo from '@/assets/sinc-logo.png';
 import NotFound from '@/pages/NotFound';
+import ContributionCard from '@/components/ContributionCard';
+import GroupRegistrationForm from '@/components/GroupRegistrationForm';
+import GroupStatusPanel from '@/components/GroupStatusPanel';
+import { getEventDays, formatDateRange, formatDayLine, formatHour, hasProgram } from '@/lib/eventDays';
 
 export default function PublicRSVPPage() {
   const { event, notFound, loading, findGuestByName, addGuest, updateGuest } = useEvent();
@@ -29,6 +33,15 @@ export default function PublicRSVPPage() {
 
   if (loading) return null;
   if (notFound) return <NotFound />;
+
+  const eventDays = getEventDays(event);
+  const multiDay = eventDays.length > 1;
+  const comProgramacao = hasProgram(eventDays);
+  // Contribuição voluntária: a vaga é garantida e o valor é escolhido no final.
+  const voluntary = event.isPaid && event.contributionMode === 'voluntary';
+  // Valor fixo: inscrição em grupo (cada pessoa paga o valor, um Pix só, um ingresso por pessoa).
+  const grupo = event.isPaid && !voluntary;
+  const valorFixo = (n: number) => (event.isPaid && !voluntary ? event.ticketPrice * (1 + (event.allowCompanions ? n : 0)) : 0);
 
   const confirmedCount = event.guests.filter(g => !isNaoInscrito(g) && g.presenceStatus !== 'cancelled').reduce((s, g) => s + 1 + g.companions, 0);
   const isFull = confirmedCount >= event.maxGuests;
@@ -58,12 +71,19 @@ export default function PublicRSVPPage() {
         presenceStatus: status,
         confirmedAt: new Date().toISOString(),
         companions: event.allowCompanions ? companions : 0,
-        amountDue: event.isPaid ? event.ticketPrice * (1 + (event.allowCompanions ? companions : 0)) : 0,
+        amountDue: voluntary ? existing.amountDue : valorFixo(companions),
+        ...(voluntary && existing.paymentStatus === 'pending' ? { paymentStatus: 'not_applicable' as const } : {}),
         invitedBy: invitedBy.trim(),
         phone: phone.trim() || existing.phone,
         email: email.trim() || existing.email,
       });
-      setFound({ ...existing, presenceStatus: status, confirmedAt: new Date().toISOString(), email: email.trim() || existing.email });
+      setFound({
+        ...existing,
+        presenceStatus: status,
+        confirmedAt: new Date().toISOString(),
+        email: email.trim() || existing.email,
+        ...(voluntary && existing.paymentStatus === 'pending' ? { paymentStatus: 'not_applicable' as const } : {}),
+      });
       if (status !== 'waitlist') toast.success('Presença confirmada!');
     } else {
       const status = isFull ? 'waitlist' : 'confirmed';
@@ -73,8 +93,8 @@ export default function PublicRSVPPage() {
         phone: phone.trim() || undefined,
         email: email.trim() || undefined,
         presenceStatus: status,
-        paymentStatus: event.isPaid ? 'pending' : 'exempt',
-        amountDue: event.isPaid ? event.ticketPrice * (1 + (event.allowCompanions ? companions : 0)) : 0,
+        paymentStatus: voluntary ? 'not_applicable' : event.isPaid ? 'pending' : 'exempt',
+        amountDue: valorFixo(companions),
         amountPaid: 0,
         companions: event.allowCompanions ? companions : 0,
         notes: '',
@@ -124,6 +144,7 @@ export default function PublicRSVPPage() {
       is_paid: event.isPaid,
       ticket_label: event.ticketLabel,
       use_tickets: event.useTickets,
+      days: event.days,
       logo_url: event.logoUrl ?? null,
       cover_url: event.coverUrl ?? null,
       header_bg_color: event.headerBgColor ?? null,
@@ -209,13 +230,22 @@ export default function PublicRSVPPage() {
           <h1 className="font-display text-4xl font-bold mb-4" style={event.headerTextColor ? { color: event.headerTextColor } : undefined}>{event.name || 'Evento'}</h1>
           {event.description && <p className="mb-6 opacity-80" style={event.headerTextColor ? { color: event.headerTextColor, opacity: 0.85 } : undefined}>{event.description}</p>}
           <div className="flex flex-wrap justify-center gap-4 text-sm opacity-80" style={event.headerTextColor ? { color: event.headerTextColor, opacity: 0.85 } : undefined}>
-            {event.date && (
+            {multiDay ? (
               <span className="flex items-center gap-1">
                 <CalendarDays className="w-4 h-4" />
-                {new Date(event.date + 'T00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                {formatDateRange(eventDays)} · {eventDays.length} dias
               </span>
+            ) : (
+              <>
+                {event.date && (
+                  <span className="flex items-center gap-1">
+                    <CalendarDays className="w-4 h-4" />
+                    {new Date(event.date + 'T00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </span>
+                )}
+                {event.time && <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{eventDays[0]?.end ? `${event.time} às ${eventDays[0].end}` : event.time}</span>}
+              </>
             )}
-            {event.time && <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{event.time}</span>}
             {event.location && (
               <span className="flex items-center gap-1 flex-wrap">
                 <MapPin className="w-4 h-4" />{event.location}
@@ -228,6 +258,36 @@ export default function PublicRSVPPage() {
               </span>
             )}
           </div>
+          {comProgramacao ? (
+            <div className="mt-6 text-left rounded-2xl bg-primary-foreground/10 px-5 py-4 max-w-sm mx-auto" style={event.headerTextColor ? { color: event.headerTextColor } : undefined}>
+              <p className="text-xs uppercase tracking-wider opacity-70 mb-3">Programação</p>
+              <div className="space-y-4">
+                {eventDays.map(d => (
+                  <div key={d.date}>
+                    <p className="text-sm font-semibold flex items-center gap-2"><CalendarDays className="w-4 h-4 opacity-80" />{formatDayLine({ ...d, start: '', end: undefined })}</p>
+                    {d.sessions && d.sessions.length > 0 ? (
+                      <ul className="mt-1.5 ml-6 space-y-1 text-sm">
+                        {d.sessions.map((ss, k) => (
+                          <li key={k} className="flex gap-3">
+                            <span className="w-12 shrink-0 tabular-nums opacity-80">{formatHour(ss.time)}</span>
+                            <span>{ss.title}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      d.start && <p className="mt-1 ml-6 text-sm opacity-80">{formatDayLine(d).split(' · ').slice(1).join(' · ')}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : multiDay && (
+            <ul className="mt-5 inline-flex flex-col gap-1.5 text-sm text-left rounded-xl bg-primary-foreground/10 px-4 py-3" style={event.headerTextColor ? { color: event.headerTextColor } : undefined}>
+              {eventDays.map(d => (
+                <li key={d.date} className="flex items-center gap-2"><Clock className="w-3.5 h-3.5 opacity-70" />{formatDayLine(d)}</li>
+              ))}
+            </ul>
+          )}
           {event.cancellationDeadline && (
             <p className="mt-4 text-sm bg-primary-foreground/10 rounded-lg px-4 py-2 inline-block" style={event.headerTextColor ? { color: event.headerTextColor } : undefined}>
               📅 Confirmação até {new Date(event.cancellationDeadline + 'T00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}
@@ -246,7 +306,7 @@ export default function PublicRSVPPage() {
             style={mode === 'confirm' ? primaryBtnStyle : outlinePrimaryStyle}
             onClick={() => { setMode('confirm'); resetLookup(); }}
           >
-            Confirmar Presença
+            {grupo ? 'Inscrever' : 'Confirmar Presença'}
           </Button>
           <Button
             variant={mode === 'manage' ? 'default' : 'outline'}
@@ -254,12 +314,14 @@ export default function PublicRSVPPage() {
             style={mode === 'manage' ? primaryBtnStyle : outlinePrimaryStyle}
             onClick={() => { setMode('manage'); resetForm(); }}
           >
-            <Search className="w-4 h-4 mr-2" />Desconfirmar
+            <Search className="w-4 h-4 mr-2" />Minha inscrição
           </Button>
         </div>
 
         <div className="bg-card rounded-2xl border border-border shadow-elegant p-8">
-          {mode === 'confirm' ? (
+          {mode === 'confirm' && grupo ? (
+            <GroupRegistrationForm isFull={isFull} primaryBtnStyle={primaryBtnStyle} />
+          ) : mode === 'confirm' ? (
             <>
               {wasCancelled ? (
                 <div className="text-center space-y-4">
@@ -312,7 +374,13 @@ export default function PublicRSVPPage() {
                         <Input type="number" min={0} max={event.maxCompanions} value={companions} onChange={e => setCompanions(Math.min(Number(e.target.value), event.maxCompanions))} />
                       </div>
                     )}
-                    {event.isPaid && (
+                    {voluntary && (
+                      <div className="bg-gold-light rounded-lg p-4 text-center">
+                        <HeartHandshake className="w-5 h-5 mx-auto text-foreground" />
+                        <p className="text-sm text-foreground mt-2 leading-relaxed">Confirme sua inscrição e, se desejar, semeie uma oferta de qualquer valor para contribuir com este propósito. Sua contribuição é voluntária e não é obrigatória.</p>
+                      </div>
+                    )}
+                    {event.isPaid && !voluntary && (
                       <div className="bg-gold-light rounded-lg p-4 text-center">
                         <p className="text-sm text-muted-foreground">{event.ticketLabel || 'Ingresso'}</p>
                         <p className="text-2xl font-bold text-foreground">
@@ -338,7 +406,7 @@ export default function PublicRSVPPage() {
                       <Users className="w-4 h-4" />+{found!.companions} acompanhante(s)
                     </p>
                   )}
-                  {event.isPaid && (found!.paymentStatus === 'pending' || found!.paymentStatus === 'partial') && (
+                  {event.isPaid && !voluntary && (found!.paymentStatus === 'pending' || found!.paymentStatus === 'partial') && (
                     <div className="bg-warning/10 rounded-lg p-4 mt-4">
                       <p className="text-sm font-medium text-warning">Pagamento pendente</p>
                       <p className="text-2xl font-bold mt-1">{(found!.amountDue - found!.amountPaid).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
@@ -353,10 +421,13 @@ export default function PublicRSVPPage() {
                       <p className="text-xs text-muted-foreground mt-2">A confirmação do pagamento será feita pelo administrador.</p>
                     </div>
                   )}
-                  {event.isPaid && found!.paymentStatus === 'paid' && (
+                  {event.isPaid && !voluntary && found!.paymentStatus === 'paid' && (
                     <div className="bg-success/10 rounded-lg p-4 mt-4">
                       <p className="text-sm font-medium text-success">✓ Pagamento aprovado</p>
                     </div>
+                  )}
+                  {voluntary && (
+                    <ContributionCard event={event} guest={found!} updateGuest={updateGuest} onGuestChange={g => setFound(g)} primaryBtnStyle={primaryBtnStyle} />
                   )}
                   {event.useTickets && (found!.presenceStatus === 'confirmed' || found!.presenceStatus === 'attended') && isConfirmado(found!) && (
                     <Button className="w-full" style={primaryBtnStyle} onClick={() => navigate(`/ticket/${found!.id}`, { state: { ticket: buildTicket(found!) } })}>
@@ -420,7 +491,13 @@ export default function PublicRSVPPage() {
                       <Users className="w-4 h-4" />+{lookupResult.companions} acompanhante(s)
                     </p>
                   )}
-                  {event.isPaid && (
+                  {voluntary && (
+                    <ContributionCard event={event} guest={lookupResult} updateGuest={updateGuest} onGuestChange={g => setLookupResult(g)} primaryBtnStyle={primaryBtnStyle} />
+                  )}
+                  {grupo && (
+                    <GroupStatusPanel key={lookupResult.id} guestId={lookupResult.id} fallbackGuests={[lookupResult]} primaryBtnStyle={primaryBtnStyle} />
+                  )}
+                  {event.isPaid && !voluntary && !grupo && (
                     <div className={`rounded-lg p-4 mt-2 ${lookupResult.paymentStatus === 'paid' ? 'bg-success/10' : 'bg-warning/10'}`}>
                       <p className="text-sm font-medium flex items-center justify-center gap-1">
                         <CreditCard className="w-4 h-4" />
@@ -447,7 +524,7 @@ export default function PublicRSVPPage() {
                       )}
                     </div>
                   )}
-                  {event.useTickets && isConfirmado(lookupResult) && (
+                  {event.useTickets && isConfirmado(lookupResult) && !grupo && (
                     <Button className="w-full" style={primaryBtnStyle} onClick={() => navigate(`/ticket/${lookupResult.id}`, { state: { ticket: buildTicket(lookupResult) } })}>
                       <Ticket className="w-4 h-4 mr-2" />Ver meu Ingresso
                     </Button>

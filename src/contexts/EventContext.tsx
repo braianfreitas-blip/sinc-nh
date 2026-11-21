@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { useParams } from 'react-router-dom';
 import { EventData, Guest, PaymentRecord, PaymentMethod, WalkinCategoria, isNaoInscrito, naoInscritoCategoria, naoInscritoNotes, situacaoPresenca } from '@/types/event';
 import { supabase } from '@/integrations/supabase/client';
+import { parseAmounts, parseCheckinDays, parseDays } from '@/lib/eventDays';
 
 const DEFAULT_EVENT: EventData = {
   id: '',
@@ -17,6 +18,10 @@ const DEFAULT_EVENT: EventData = {
   allowCompanions: false,
   maxCompanions: 1,
   useTickets: false,
+  days: [],
+  contributionMode: 'fixed',
+  suggestedAmounts: [],
+  paymentProvider: 'manual',
   guests: [],
   payments: [],
   createdAt: new Date().toISOString(),
@@ -25,15 +30,17 @@ const DEFAULT_EVENT: EventData = {
 interface EventContextType {
   event: EventData;
   updateEvent: (data: Partial<EventData>) => void;
-  addGuest: (guest: Omit<Guest, 'id' | 'createdAt'>) => Guest;
+  addGuest: (guest: NewGuest) => Guest;
   updateGuest: (id: string, data: Partial<Guest>) => Promise<{ error: any }>;
   removeGuest: (id: string) => void;
-  addNaoInscrito: (categoria: WalkinCategoria, nome?: string) => Promise<{ error: any }>;
+  addNaoInscrito: (categoria: WalkinCategoria, nome?: string, day?: string) => Promise<{ error: any }>;
   removeLastNaoInscrito: () => Promise<{ error: any }>;
   addPayment: (payment: Omit<PaymentRecord, 'id'>) => void;
   getGuest: (id: string) => Guest | undefined;
   findGuestByName: (firstName: string, lastName: string) => Guest | undefined;
   stats: EventStats;
+  // Recarrega evento e convidados do banco (ex.: depois de uma inscrição feita pelo servidor).
+  reload: () => Promise<void>;
   loading: boolean;
   notFound: boolean;
 }
@@ -51,6 +58,9 @@ interface EventStats {
   totalPending: number;
   totalExempt: number;
   totalRefunded: number;
+  // Contribuição voluntária: valores escolhidos que ainda não foram recebidos.
+  totalPledged: number;
+  pledgedCount: number;
   confirmationRate: number;
   paymentRate: number;
   naoInscritosAdultos: number;
@@ -64,9 +74,12 @@ interface EventStats {
   ausentes: number;
 }
 
+// Convidado novo: checkinDays é opcional (começa vazio).
+type NewGuest = Omit<Guest, 'id' | 'createdAt' | 'checkinDays'> & { checkinDays?: Record<string, string> };
+
 const EventContext = createContext<EventContextType | null>(null);
 
-function mapGuest(row: any): Guest {
+export function mapGuest(row: any): Guest {
   return {
     id: row.id,
     firstName: row.first_name,
@@ -83,8 +96,10 @@ function mapGuest(row: any): Guest {
     paidAt: row.paid_at || undefined,
     paymentMethod: row.payment_method || undefined,
     checkedIn: row.checked_in,
+    checkinDays: parseCheckinDays(row.checkin_days),
     checkedInAt: row.checked_in_at || undefined,
     invitedBy: row.invited_by || undefined,
+    groupId: row.group_id || undefined,
     createdAt: row.created_at,
   };
 }
@@ -124,6 +139,11 @@ function mapEvent(row: any): Omit<EventData, 'guests' | 'payments'> {
     logoUrl: row.logo_url || undefined,
     coverUrl: row.cover_url || undefined,
     useTickets: row.use_tickets ?? false,
+    days: parseDays(row.days),
+    contributionMode: row.contribution_mode === 'voluntary' ? 'voluntary' : 'fixed',
+    suggestedAmounts: parseAmounts(row.suggested_amounts),
+    contributionMessage: row.contribution_message || undefined,
+    paymentProvider: row.payment_provider === 'mercadopago' || row.payment_provider === 'stripe' ? row.payment_provider : 'manual',
     createdAt: row.created_at,
   };
 }
@@ -132,11 +152,25 @@ export function EventProvider({ children, eventId }: { children: React.ReactNode
   const [event, setEvent] = useState<EventData>({ ...DEFAULT_EVENT, id: eventId });
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  // Visitante sem login (página pública): tudo passa por funções seguras do servidor.
+  const publicModeRef = React.useRef(false);
 
   const loadData = useCallback(async () => {
     if (!eventId) return;
     setNotFound(false);
     try {
+      const { data: sess } = await supabase.auth.getSession();
+      publicModeRef.current = !sess.session;
+      if (publicModeRef.current) {
+        const { data: evRow, error: evErr } = await supabase.rpc('get_public_event', { _key: eventId });
+        if (evErr || !evRow) throw evErr || new Error('Event not found');
+        const eventData = mapEvent(evRow);
+        const { data: gRows } = await supabase.rpc('get_public_guests', { _event_id: (evRow as any).id });
+        const guests = ((gRows as any[]) || []).map(mapGuest);
+        setEvent({ ...eventData, guests, payments: [] });
+        return;
+      }
+
       // Try by UUID first, then by slug
       const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
       const eventQuery = isUUID
@@ -235,6 +269,11 @@ export function EventProvider({ children, eventId }: { children: React.ReactNode
     if (data.logoUrl !== undefined) dbData.logo_url = data.logoUrl || null;
     if (data.coverUrl !== undefined) dbData.cover_url = data.coverUrl || null;
     if (data.useTickets !== undefined) dbData.use_tickets = data.useTickets;
+    if (data.days !== undefined) dbData.days = data.days;
+    if (data.contributionMode !== undefined) dbData.contribution_mode = data.contributionMode;
+    if (data.suggestedAmounts !== undefined) dbData.suggested_amounts = data.suggestedAmounts;
+    if (data.contributionMessage !== undefined) dbData.contribution_message = data.contributionMessage || null;
+    if (data.paymentProvider !== undefined) dbData.payment_provider = data.paymentProvider;
 
     if (Object.keys(dbData).length > 0) {
       const realId = event.id;
@@ -249,12 +288,25 @@ export function EventProvider({ children, eventId }: { children: React.ReactNode
     }
   }, [event.id]);
 
-  const addGuest = useCallback((guestData: Omit<Guest, 'id' | 'createdAt'>): Guest => {
+  const addGuest = useCallback((guestData: NewGuest): Guest => {
     const tempId = crypto.randomUUID();
     const now = new Date().toISOString();
-    const guest: Guest = { ...guestData, id: tempId, createdAt: now };
+    const guest: Guest = { ...guestData, checkinDays: guestData.checkinDays || {}, id: tempId, createdAt: now };
 
     setEvent(prev => ({ ...prev, guests: [...prev.guests, guest] }));
+
+    if (publicModeRef.current) {
+      supabase.rpc('public_add_guest', {
+        _id: tempId, _event_id: event.id, _first: guestData.firstName, _last: guestData.lastName,
+        _phone: guestData.phone || '', _email: guestData.email || '', _companions: guestData.companions,
+        _invited_by: guestData.invitedBy || '',
+      }).then(({ data, error }) => {
+        if (error) { console.error('Error adding guest:', error); return; }
+        const r = data as any;
+        setEvent(prev => ({ ...prev, guests: prev.guests.map(g => g.id === tempId ? { ...g, presenceStatus: r.presence_status, paymentStatus: r.payment_status, amountDue: Number(r.amount_due), companions: r.companions } : g) }));
+      });
+      return guest;
+    }
 
     supabase.from('guests').insert({
       id: tempId,
@@ -274,6 +326,7 @@ export function EventProvider({ children, eventId }: { children: React.ReactNode
       payment_method: guestData.paymentMethod || null,
       checked_in: guestData.checkedIn,
       checked_in_at: guestData.checkedInAt || null,
+      checkin_days: guestData.checkinDays || {},
       invited_by: guestData.invitedBy || null,
     }).select().single().then(({ data, error }) => {
       if (error) { console.error('Error adding guest:', error); return; }
@@ -290,11 +343,13 @@ export function EventProvider({ children, eventId }: { children: React.ReactNode
 
   // Adiciona um "não inscrito" (pessoa presente sem inscrição). Um toque = um
   // registro. Confirma contra o banco e reverte em falha (igual ao check-in).
-  const addNaoInscrito = useCallback(async (categoria: WalkinCategoria, nome?: string): Promise<{ error: any }> => {
+  // `day` (AAAA-MM-DD) marca em qual dia do evento a pessoa veio (eventos de vários dias).
+  const addNaoInscrito = useCallback(async (categoria: WalkinCategoria, nome?: string, day?: string): Promise<{ error: any }> => {
     const tempId = crypto.randomUUID();
     const now = new Date().toISOString();
     const notes = naoInscritoNotes(categoria);
     const firstName = (nome && nome.trim()) || 'Não inscrito';
+    const checkinDays: Record<string, string> = day ? { [day]: now } : {};
     const guest: Guest = {
       id: tempId,
       firstName,
@@ -307,6 +362,7 @@ export function EventProvider({ children, eventId }: { children: React.ReactNode
       notes,
       checkedIn: true,
       checkedInAt: now,
+      checkinDays,
       createdAt: now,
     };
 
@@ -325,6 +381,7 @@ export function EventProvider({ children, eventId }: { children: React.ReactNode
       notes,
       checked_in: true,
       checked_in_at: now,
+      checkin_days: checkinDays,
     }).select().single();
 
     if (error) {
@@ -369,6 +426,22 @@ export function EventProvider({ children, eventId }: { children: React.ReactNode
       };
     });
 
+    if (publicModeRef.current) {
+      const action = data.presenceStatus === 'cancelled' ? 'cancel' : data.paymentStatus === 'pledged' ? 'pledge' : 'confirm';
+      const { error } = await supabase.rpc('public_update_guest', {
+        _guest_id: id, _action: action,
+        _companions: data.companions ?? prevGuest?.companions ?? 0,
+        _phone: data.phone || '', _email: data.email || '', _invited_by: data.invitedBy || '',
+        _amount: action === 'pledge' ? data.amountDue : undefined,
+      });
+      if (error) {
+        console.error('Error updating guest:', error);
+        if (prevGuest) setEvent(prev => ({ ...prev, guests: prev.guests.map(g => g.id === id ? (prevGuest as Guest) : g) }));
+        return { error };
+      }
+      return { error: null };
+    }
+
     const dbData: Record<string, any> = {};
     if (data.firstName !== undefined) dbData.first_name = data.firstName;
     if (data.lastName !== undefined) dbData.last_name = data.lastName;
@@ -385,6 +458,7 @@ export function EventProvider({ children, eventId }: { children: React.ReactNode
     if (data.paymentMethod !== undefined) dbData.payment_method = data.paymentMethod || null;
     if (data.checkedIn !== undefined) dbData.checked_in = data.checkedIn;
     if (data.checkedInAt !== undefined) dbData.checked_in_at = data.checkedInAt || null;
+    if (data.checkinDays !== undefined) dbData.checkin_days = data.checkinDays;
     if (data.invitedBy !== undefined) dbData.invited_by = data.invitedBy || null;
 
     if (Object.keys(dbData).length > 0) {
@@ -471,6 +545,8 @@ export function EventProvider({ children, eventId }: { children: React.ReactNode
       .reduce((sum, g) => sum + (g.amountDue - g.amountPaid), 0);
     const totalExempt = guests.filter(g => g.paymentStatus === 'exempt').length;
     const totalRefunded = guests.filter(g => g.paymentStatus === 'refunded').reduce((s, g) => s + g.amountPaid, 0);
+    const pledged = guests.filter(g => g.paymentStatus === 'pledged' && g.presenceStatus !== 'cancelled');
+    const totalPledged = pledged.reduce((sum, g) => sum + Math.max(0, g.amountDue - g.amountPaid), 0);
     const total = guests.length;
 
     // Jornada única: Inscrito -> Confirmado -> Compareceu.
@@ -493,6 +569,8 @@ export function EventProvider({ children, eventId }: { children: React.ReactNode
       totalPending: totalPendingPayment,
       totalExempt,
       totalRefunded,
+      totalPledged,
+      pledgedCount: pledged.length,
       confirmationRate: total > 0 ? Math.round(((confirmed + attended) / total) * 100) : 0,
       paymentRate: totalExpected > 0 ? Math.round((totalReceived / totalExpected) * 100) : 0,
       naoInscritosAdultos,
@@ -508,7 +586,7 @@ export function EventProvider({ children, eventId }: { children: React.ReactNode
   }, [event.guests]);
 
   return (
-    <EventContext.Provider value={{ event, updateEvent, addGuest, updateGuest, removeGuest, addNaoInscrito, removeLastNaoInscrito, addPayment, getGuest, findGuestByName, stats, loading, notFound }}>
+    <EventContext.Provider value={{ event, reload: loadData, updateEvent, addGuest, updateGuest, removeGuest, addNaoInscrito, removeLastNaoInscrito, addPayment, getGuest, findGuestByName, stats, loading, notFound }}>
       {children}
     </EventContext.Provider>
   );

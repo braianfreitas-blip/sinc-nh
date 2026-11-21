@@ -38,11 +38,7 @@ export default function LoginPage() {
         return;
       }
       // Check if email is invited
-      const { data: allowed } = await supabase
-        .from("allowed_emails")
-        .select("id")
-        .eq("email", email.trim().toLowerCase())
-        .maybeSingle();
+      const { data: allowed } = await supabase.rpc("is_email_allowed", { _email: email.trim().toLowerCase() });
 
       if (!allowed) {
         toast({

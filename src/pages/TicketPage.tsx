@@ -8,6 +8,7 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { toast } from 'sonner';
 import sincLogo from '@/assets/sinc-logo.png';
+import { getEventDays, parseDays, formatDateRange, formatDayLine, formatHour } from '@/lib/eventDays';
 
 interface TicketData {
   guest: {
@@ -30,6 +31,7 @@ interface TicketData {
     is_paid: boolean;
     ticket_label: string;
     use_tickets: boolean;
+    days?: unknown;
     logo_url: string | null;
     cover_url: string | null;
     header_bg_color: string | null;
@@ -53,19 +55,9 @@ export default function TicketPage() {
     if (preloaded) return;
     (async () => {
       try {
-        const { data: guest, error: gErr } = await supabase
-          .from('guests')
-          .select('*')
-          .eq('id', guestId)
-          .single();
-        if (gErr || !guest) throw gErr || new Error('Guest not found');
-
-        const { data: event, error: eErr } = await supabase
-          .from('events')
-          .select('*')
-          .eq('id', guest.event_id)
-          .single();
-        if (eErr || !event) throw eErr || new Error('Event not found');
+        const { data: tk, error: tErr } = await supabase.rpc('get_public_ticket', { _guest_id: guestId });
+        if (tErr || !tk) throw tErr || new Error('Ticket not found');
+        const { guest, event } = tk as any;
 
         if (!event.use_tickets) {
           setError('Este evento não emite ingressos.');
@@ -123,6 +115,7 @@ export default function TicketPage() {
   });
 
   const totalPeople = 1 + (guest.companions || 0);
+  const ticketDays = getEventDays({ days: parseDays(event.days), date: event.date, time: event.time });
   const fileBase = `ingresso-${guest.first_name}-${guest.last_name}`.toLowerCase().replace(/\s+/g, '-');
   const accent: React.CSSProperties = event.primary_color ? { color: event.primary_color } : { color: 'hsl(var(--primary))' };
 
@@ -189,14 +182,17 @@ export default function TicketPage() {
 
   const handleShareWhatsApp = () => {
     const url = window.location.href;
-    const dateStr = event.date
-      ? new Date(event.date + 'T00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
-      : '';
+    const dias = getEventDays({ days: parseDays(event.days), date: event.date, time: event.time });
+    const dateStr = dias.length > 1
+      ? formatDateRange(dias)
+      : event.date
+        ? new Date(event.date + 'T00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
+        : '';
     const lines = [
       `🎟️ *Meu ingresso para ${event.name}*`,
       '',
       `👤 ${guest.first_name} ${guest.last_name}`,
-      dateStr && `📅 ${dateStr}${event.time ? ` às ${event.time}` : ''}`,
+      dateStr && `📅 ${dateStr}${dias.length <= 1 && event.time ? ` às ${event.time}` : ''}`,
       event.location && `📍 ${event.location}`,
       totalPeople > 1 && `👥 ${totalPeople} pessoas`,
       '',
@@ -241,13 +237,31 @@ export default function TicketPage() {
           {/* Info */}
           <div className="p-6 space-y-4 text-sm">
             <div className="space-y-2 text-muted-foreground">
-              {event.date && (
-                <p className="flex items-center gap-2">
-                  <CalendarDays className="w-4 h-4" style={accent} />
-                  {new Date(event.date + 'T00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}
-                </p>
+              {ticketDays.length > 1 ? (
+                <div className="space-y-1">
+                  <p className="flex items-center gap-2"><CalendarDays className="w-4 h-4" style={accent} />{formatDateRange(ticketDays)} · válido para os {ticketDays.length} dias</p>
+                  {ticketDays.map(d => (
+                    <div key={d.date} className="pl-6">
+                      <p className="flex items-center gap-2 text-xs"><Clock className="w-3.5 h-3.5" style={accent} />{formatDayLine(d)}</p>
+                      {d.sessions && d.sessions.length > 0 && (
+                        <p className="text-[11px] text-muted-foreground pl-5 mt-0.5">
+                          {d.sessions.map(ss => `${ss.time ? formatHour(ss.time) + ' ' : ''}${ss.title}`).join(' · ')}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <>
+                  {event.date && (
+                    <p className="flex items-center gap-2">
+                      <CalendarDays className="w-4 h-4" style={accent} />
+                      {new Date(event.date + 'T00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </p>
+                  )}
+                  {event.time && <p className="flex items-center gap-2"><Clock className="w-4 h-4" style={accent} />{event.time}</p>}
+                </>
               )}
-              {event.time && <p className="flex items-center gap-2"><Clock className="w-4 h-4" style={accent} />{event.time}</p>}
               {event.location && <p className="flex items-center gap-2"><MapPin className="w-4 h-4" style={accent} />{event.location}</p>}
             </div>
 

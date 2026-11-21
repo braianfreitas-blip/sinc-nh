@@ -1,6 +1,6 @@
 import { useEvent } from '@/contexts/EventContext';
 import { PAYMENT_METHOD_LABELS, PAYMENT_LABELS, PAYMENT_COLORS } from '@/types/event';
-import { DollarSign, TrendingUp, TrendingDown, ShieldCheck, RotateCcw, Download } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, ShieldCheck, RotateCcw, Download, HeartHandshake } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
@@ -10,6 +10,8 @@ function fmt(v: number) {
 
 export default function FinancialPage() {
   const { event, stats } = useEvent();
+  const voluntary = event.isPaid && event.contributionMode === 'voluntary';
+  const pledged = event.guests.filter(g => g.paymentStatus === 'pledged' && g.presenceStatus !== 'cancelled');
 
   const byMethod: Record<string, number> = {};
   event.payments.forEach(p => {
@@ -43,9 +45,11 @@ export default function FinancialPage() {
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {[
-          { icon: DollarSign, label: 'Total Esperado', value: fmt(stats.totalExpected), color: 'bg-primary/10 text-primary' },
+          voluntary
+            ? { icon: HeartHandshake, label: 'Contribuições a receber', value: fmt(stats.totalPledged), color: 'bg-info/10 text-info' }
+            : { icon: DollarSign, label: 'Total Esperado', value: fmt(stats.totalExpected), color: 'bg-primary/10 text-primary' },
           { icon: TrendingUp, label: 'Total Recebido', value: fmt(stats.totalReceived), color: 'bg-success/10 text-success' },
-          { icon: TrendingDown, label: 'Total Pendente', value: fmt(stats.totalPending), color: 'bg-warning/10 text-warning' },
+          { icon: TrendingDown, label: voluntary ? 'Pagamentos pendentes' : 'Total Pendente', value: fmt(stats.totalPending), color: 'bg-warning/10 text-warning' },
           { icon: ShieldCheck, label: 'Isentos', value: String(stats.totalExempt), color: 'bg-info/10 text-info' },
           { icon: RotateCcw, label: 'Estornado', value: fmt(stats.totalRefunded), color: 'bg-destructive/10 text-destructive' },
         ].map(s => (
@@ -58,6 +62,25 @@ export default function FinancialPage() {
           </div>
         ))}
       </div>
+
+      {voluntary && (
+        <div className="bg-card rounded-xl border border-border p-6 shadow-card">
+          <h3 className="font-display text-lg font-semibold mb-1">Contribuições a receber</h3>
+          <p className="text-sm text-muted-foreground mb-4">Pessoas que escolheram um valor e ainda não tiveram o PIX confirmado. Registre o recebimento na lista de convidados (botão de pagamento) ou no check-in.</p>
+          {pledged.length === 0 ? (
+            <p className="text-muted-foreground text-sm">Nenhuma contribuição pendente.</p>
+          ) : (
+            <div className="space-y-2">
+              {pledged.map(g => (
+                <div key={g.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                  <span className="text-sm font-medium">{g.firstName} {g.lastName}</span>
+                  <span className="text-sm font-semibold text-info">{fmt(Math.max(0, g.amountDue - g.amountPaid))}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {Object.keys(byMethod).length > 0 && (
         <div className="bg-card rounded-xl border border-border p-6 shadow-card">

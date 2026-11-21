@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useEvent } from '@/contexts/EventContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,7 @@ import { PRESENCE_LABELS, PRESENCE_COLORS, PAYMENT_LABELS, PAYMENT_COLORS, isNao
 import { Search, UserCheck, CheckCircle2, ScanLine, Loader2, XCircle, Clock, UserPlus, Baby, Undo2, Users, ChevronDown, ChevronUp, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import QRScanner from '@/components/QRScanner';
+import { getEventDays, defaultCheckinDay, checkedInOn, formatDayLine } from '@/lib/eventDays';
 
 function formatCurrency(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -35,21 +36,36 @@ export default function CheckinPage() {
 
   const METODOS: PaymentMethod[] = ['pix', 'cash', 'card', 'transfer', 'other'];
 
+  // Eventos de vários dias: o check-in é registrado no dia selecionado.
+  const eventDays = getEventDays(event);
+  const multiDay = eventDays.length > 1;
+  const [day, setDay] = useState(() => defaultCheckinDay(eventDays));
+  useEffect(() => {
+    if (multiDay && !eventDays.some(d => d.date === day)) setDay(defaultCheckinDay(eventDays));
+  }, [multiDay, eventDays, day]);
+  const isIn = (g: Guest) => checkedInOn(g, day, multiDay);
+  const horaCheckin = (g: Guest) => (multiDay ? g.checkinDays?.[day] : g.checkedInAt);
+  const diaAtual = eventDays.find(d => d.date === day);
+
   // Apenas inscritos (não inscritos são contados no card à parte).
   const inscritos = event.guests.filter(g => !isNaoInscrito(g));
   const naoInscritos = event.guests.filter(isNaoInscrito);
 
   const guests = inscritos.filter(g => {
-    if (soPendentes && (g.checkedIn || g.presenceStatus === 'cancelled')) return false;
+    if (soPendentes && (isIn(g) || g.presenceStatus === 'cancelled')) return false;
     if (!search) return true;
     return `${g.firstName} ${g.lastName}`.toLowerCase().includes(search.toLowerCase());
   });
 
-  const checkedIn = inscritos.filter(g => g.checkedIn).length;
+  const checkedIn = inscritos.filter(isIn).length;
+  // Não inscritos do dia (vários dias) ou do evento todo (um dia).
+  const naoInscritosDia = multiDay ? naoInscritos.filter(g => g.checkinDays?.[day]) : naoInscritos;
+  const adultosDia = naoInscritosDia.filter(g => naoInscritoCategoria(g) === 'adulto').length;
+  const presentesDia = checkedIn + naoInscritosDia.length;
 
   const addAvulso = async (categoria: WalkinCategoria) => {
     setSalvandoAvulso(true);
-    const { error } = await addNaoInscrito(categoria, nomeAvulso);
+    const { error } = await addNaoInscrito(categoria, nomeAvulso, multiDay ? day : undefined);
     setSalvandoAvulso(false);
     if (error) {
       toast.error('Não foi possível salvar. Verifique a conexão e tente de novo.');
@@ -67,8 +83,32 @@ export default function CheckinPage() {
   };
 
   // Grava o check-in e só confirma quando salvou de verdade no banco.
-  const persistCheckIn = (id: string) =>
-    updateGuest(id, { checkedIn: true, checkedInAt: new Date().toISOString(), presenceStatus: 'attended' });
+  // Em eventos de vários dias, grava o dia selecionado em checkinDays;
+  // "Compareceu" vale para quem veio em pelo menos um dia.
+  const checkinFields = (g: Guest | undefined, now: string): Partial<Guest> => {
+    if (!multiDay) return { checkedIn: true, checkedInAt: now, presenceStatus: 'attended' };
+    return {
+      checkedIn: true,
+      checkedInAt: g?.checkedInAt || now,
+      presenceStatus: 'attended',
+      checkinDays: { ...(g?.checkinDays || {}), [day]: now },
+    };
+  };
+  const persistCheckIn = (id: string) => updateGuest(id, checkinFields(getGuest(id), new Date().toISOString()));
+
+  // Desfaz o check-in (do dia selecionado, em eventos de vários dias).
+  const desfazerCheckin = (g: Guest) => {
+    if (!multiDay) {
+      updateGuest(g.id, { checkedIn: false, checkedInAt: undefined, presenceStatus: 'confirmed' });
+    } else {
+      const { [day]: _removido, ...resto } = g.checkinDays || {};
+      const algumDia = Object.keys(resto).length > 0;
+      updateGuest(g.id, algumDia
+        ? { checkinDays: resto }
+        : { checkinDays: {}, checkedIn: false, checkedInAt: undefined, presenceStatus: 'confirmed' });
+    }
+    toast.info('Check-in desfeito.');
+  };
 
   // Check-in manual (botão da lista): confirma pelo resultado da gravação.
   const manualCheckIn = async (id: string, name: string) => {
@@ -94,7 +134,10 @@ export default function CheckinPage() {
   };
 
   // Evento pago com pagamento pendente/parcial: perguntar antes de dar check-in.
-  const needsPaymentDecision = (g: Guest) => event.isPaid && !isConfirmado(g);
+  // Contribuição voluntária: se a pessoa escolheu um valor e ainda não pagou,
+  // oferecemos registrar o recebimento (sem obrigar — "Só check-in").
+  const needsPaymentDecision = (g: Guest) =>
+    event.isPaid && (event.contributionMode === 'voluntary' ? g.paymentStatus === 'pledged' : !isConfirmado(g));
 
   const iniciarCheckin = (g: Guest, viaScan: boolean) => {
     if (needsPaymentDecision(g)) {
@@ -117,9 +160,7 @@ export default function CheckinPage() {
 
     const metodoLabel = PAYMENT_METHOD_LABELS[metodoPagamento];
     const { error } = await updateGuest(g.id, {
-      checkedIn: true,
-      checkedInAt: now,
-      presenceStatus: 'attended',
+      ...checkinFields(g, now),
       paymentStatus: 'paid',
       amountPaid: g.amountDue,
       paidAt: now,
@@ -189,11 +230,14 @@ export default function CheckinPage() {
       return;
     }
 
-    if (guest.checkedIn) {
+    if (isIn(guest)) {
+      const hora = horaCheckin(guest);
       setScanResult({
         status: 'already',
         name: fullName,
-        detail: guest.checkedInAt ? `Já fez check-in às ${new Date(guest.checkedInAt).toLocaleTimeString('pt-BR')}` : 'Este convidado já fez check-in.',
+        detail: hora
+          ? `Já fez check-in${multiDay ? ' hoje' : ''} às ${new Date(hora).toLocaleTimeString('pt-BR')}`
+          : 'Este convidado já fez check-in.',
       });
       return;
     }
@@ -205,12 +249,31 @@ export default function CheckinPage() {
     <div className="space-y-6 max-w-3xl mx-auto">
       <div className="text-center">
         <h1 className="text-3xl font-bold">Check-in</h1>
-        <p className="text-muted-foreground mt-1">{checkedIn} de {inscritos.length} inscritos presentes</p>
+        {multiDay && (
+          <div className="mt-4 flex flex-wrap justify-center gap-2" role="tablist" aria-label="Dia do check-in">
+            {eventDays.map((d, i) => (
+              <button
+                key={d.date}
+                type="button"
+                role="tab"
+                aria-selected={d.date === day}
+                onClick={() => setDay(d.date)}
+                className={`px-4 py-2 rounded-full border text-sm font-medium transition-colors ${
+                  d.date === day ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-muted-foreground hover:border-primary/40'
+                }`}
+              >
+                Dia {i + 1}
+              </button>
+            ))}
+          </div>
+        )}
+        {multiDay && diaAtual && <p className="text-sm font-medium mt-2">{formatDayLine(diaAtual)}</p>}
+        <p className="text-muted-foreground mt-1">{checkedIn} de {inscritos.length} inscritos presentes{multiDay ? ' neste dia' : ''}</p>
         <div className="mt-4 h-2 bg-muted rounded-full overflow-hidden max-w-md mx-auto">
           <div className="h-full bg-success rounded-full transition-all" style={{ width: `${inscritos.length > 0 ? (checkedIn / inscritos.length) * 100 : 0}%` }} />
         </div>
         <div className="mt-3 inline-flex items-center gap-2 text-sm font-medium bg-primary/10 text-primary px-4 py-1.5 rounded-full">
-          <Users className="w-4 h-4" />Presentes no total: {stats.presentesTotal}
+          <Users className="w-4 h-4" />Presentes no total{multiDay ? ' neste dia' : ''}: {multiDay ? presentesDia : stats.presentesTotal}
         </div>
       </div>
 
@@ -221,7 +284,7 @@ export default function CheckinPage() {
             <UserPlus className="w-5 h-5 text-primary" />Não inscritos
           </h3>
           <span className="text-sm font-medium text-primary bg-primary/10 px-3 py-0.5 rounded-full">
-            {stats.naoInscritosTotal} no total
+            {naoInscritosDia.length} {multiDay ? 'neste dia' : 'no total'}
           </span>
         </div>
         <p className="text-xs text-muted-foreground mb-3">
@@ -245,17 +308,17 @@ export default function CheckinPage() {
         </div>
         <div className="flex items-center justify-between mt-3 text-sm">
           <span className="text-muted-foreground">
-            Adultos: <span className="font-semibold text-foreground">{stats.naoInscritosAdultos}</span> · Crianças: <span className="font-semibold text-foreground">{stats.naoInscritosCriancas}</span>
+            Adultos: <span className="font-semibold text-foreground">{adultosDia}</span> · Crianças: <span className="font-semibold text-foreground">{naoInscritosDia.length - adultosDia}</span>
           </span>
           <button
             onClick={desfazerAvulso}
-            disabled={stats.naoInscritosTotal === 0}
+            disabled={naoInscritosDia.length === 0}
             className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Undo2 className="w-4 h-4" />Desfazer último
           </button>
         </div>
-        {naoInscritos.length > 0 && (
+        {naoInscritosDia.length > 0 && (
           <div className="mt-3 border-t border-border pt-3">
             <button
               onClick={() => setVerNaoInscritos(v => !v)}
@@ -266,12 +329,12 @@ export default function CheckinPage() {
             </button>
             {verNaoInscritos && (
               <ul className="mt-2 space-y-1 max-h-48 overflow-y-auto">
-                {naoInscritos.map(g => (
+                {naoInscritosDia.map(g => (
                   <li key={g.id} className="flex items-center justify-between text-sm py-1 border-b border-border last:border-0">
                     <span className="text-foreground">{g.firstName || 'Sem nome'}</span>
                     <span className="text-xs text-muted-foreground">
                       {naoInscritoCategoria(g) === 'crianca' ? 'Criança' : 'Adulto'}
-                      {g.checkedInAt ? ` · ${new Date(g.checkedInAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : ''}
+                      {horaCheckin(g) ? ` · ${new Date(horaCheckin(g)!).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : ''}
                     </span>
                   </li>
                 ))}
@@ -315,34 +378,40 @@ export default function CheckinPage() {
           <div
             key={g.id}
             className={`flex items-center justify-between p-4 rounded-xl border transition-colors ${
-              g.checkedIn ? 'bg-success/5 border-success/20' : 'bg-card border-border'
+              isIn(g) ? 'bg-success/5 border-success/20' : 'bg-card border-border'
             }`}
           >
             <div className="flex items-center gap-3">
-              {g.checkedIn && <CheckCircle2 className="w-5 h-5 text-success" />}
+              {isIn(g) && <CheckCircle2 className="w-5 h-5 text-success" />}
               <div>
                 <p className="font-medium">{g.firstName} {g.lastName}</p>
                 <div className="flex gap-2 mt-1">
                   {(() => {
                     let label = 'Check-in pendente';
                     let cls = 'bg-muted text-muted-foreground';
-                    if (g.checkedIn) { label = 'Compareceu'; cls = PRESENCE_COLORS.attended; }
+                    if (isIn(g)) { label = 'Compareceu'; cls = PRESENCE_COLORS.attended; }
                     else if (g.presenceStatus === 'cancelled') { label = PRESENCE_LABELS.cancelled; cls = PRESENCE_COLORS.cancelled; }
                     else if (g.presenceStatus === 'waitlist') { label = PRESENCE_LABELS.waitlist; cls = PRESENCE_COLORS.waitlist; }
                     return <span className={`text-xs px-2 py-0.5 rounded-full ${cls}`}>{label}</span>;
                   })()}
                   {(() => {
                     const pay = event.isPaid ? g.paymentStatus : 'exempt';
-                    return <span className={`text-xs px-2 py-0.5 rounded-full ${PAYMENT_COLORS[pay]}`}>{PAYMENT_LABELS[pay]}</span>;
+                    const semContribuicao = event.contributionMode === 'voluntary' && pay === 'not_applicable';
+                    return <span className={`text-xs px-2 py-0.5 rounded-full ${PAYMENT_COLORS[pay]}`}>{semContribuicao ? 'Sem contribuição' : PAYMENT_LABELS[pay]}</span>;
                   })()}
                 </div>
                 {g.companions > 0 && <p className="text-xs text-muted-foreground mt-1">+{g.companions} acompanhante(s)</p>}
-                {g.checkedIn && g.checkedInAt && (
-                  <p className="text-xs text-success mt-1">Check-in: {new Date(g.checkedInAt).toLocaleTimeString('pt-BR')}</p>
+                {isIn(g) && horaCheckin(g) && (
+                  <p className="text-xs text-success mt-1">Check-in: {new Date(horaCheckin(g)!).toLocaleTimeString('pt-BR')}</p>
+                )}
+                {multiDay && g.checkinDays && Object.keys(g.checkinDays).length > 0 && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Veio em: {eventDays.map((d, i) => (g.checkinDays[d.date] ? `Dia ${i + 1}` : null)).filter(Boolean).join(', ')}
+                  </p>
                 )}
               </div>
             </div>
-            {!g.checkedIn ? (
+            {!isIn(g) ? (
               <Button onClick={() => iniciarCheckin(g, false)} size="sm">
                 <UserCheck className="w-4 h-4 mr-1" />Check-in
               </Button>
@@ -350,10 +419,7 @@ export default function CheckinPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  updateGuest(g.id, { checkedIn: false, checkedInAt: undefined, presenceStatus: 'confirmed' });
-                  toast.info('Check-in desfeito.');
-                }}
+                onClick={() => desfazerCheckin(g)}
               >
                 Desfazer
               </Button>
@@ -369,10 +435,10 @@ export default function CheckinPage() {
             <div className="w-20 h-20 rounded-full bg-warning/15 flex items-center justify-center mx-auto">
               <DollarSign className="w-12 h-12 text-warning" />
             </div>
-            <h2 className="text-2xl font-bold">Pagamento pendente</h2>
+            <h2 className="text-2xl font-bold">{pendingPayment.guest.paymentStatus === 'pledged' ? 'Contribuição a receber' : 'Pagamento pendente'}</h2>
             <p className="text-xl font-semibold">{pendingPayment.guest.firstName} {pendingPayment.guest.lastName}</p>
             <p className="text-muted-foreground">
-              Falta {formatCurrency(Math.max(0, pendingPayment.guest.amountDue - pendingPayment.guest.amountPaid))}. Confirmar o pagamento junto com o check-in?
+              {pendingPayment.guest.paymentStatus === 'pledged' ? 'Escolheu contribuir com' : 'Falta'} {formatCurrency(Math.max(0, pendingPayment.guest.amountDue - pendingPayment.guest.amountPaid))}. Confirmar o {pendingPayment.guest.paymentStatus === 'pledged' ? 'recebimento' : 'pagamento'} junto com o check-in?
             </p>
             <div className="text-left">
               <p className="text-sm font-medium mb-2 text-center">Forma de pagamento</p>

@@ -1,1 +1,9 @@
 project_id = "vzqfwtnohtikdtrzjazu"
+
+# Funções chamadas pela página pública e pelo Mercado Pago (sem login).
+# A checagem de segurança fica no código das funções.
+[functions.registration]
+verify_jwt = false
+
+[functions.mercadopago-webhook]
+verify_jwt = false
