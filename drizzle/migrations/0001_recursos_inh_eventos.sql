@@ -1,4 +1,4 @@
--- SINC (Event Flow): traz tudo do INH Eventos. Rodar UMA vez no SQL editor do Lovable Cloud.
+-- SINC (Event Flow): traz tudo do INH Eventos. Rodar no SQL editor do Lovable Cloud (pode rodar de novo sem problema).
 -- Partes:
 --   1) vários dias, programação, contribuição voluntária
 --   2) segurança: só administradores (e-mails convidados) veem dados; a página pública usa funções seguras
@@ -62,8 +62,11 @@ DROP POLICY IF EXISTS "Authenticated users can view allowed emails" ON public.al
 DROP POLICY IF EXISTS "Authenticated users can insert allowed emails" ON public.allowed_emails;
 DROP POLICY IF EXISTS "Authenticated users can delete allowed emails" ON public.allowed_emails;
 REVOKE ALL ON public.allowed_emails FROM anon;
+DROP POLICY IF EXISTS "Admins can view allowed emails" ON public.allowed_emails;
 CREATE POLICY "Admins can view allowed emails" ON public.allowed_emails FOR SELECT TO authenticated USING (public.is_admin());
+DROP POLICY IF EXISTS "Admins can insert allowed emails" ON public.allowed_emails;
 CREATE POLICY "Admins can insert allowed emails" ON public.allowed_emails FOR INSERT TO authenticated WITH CHECK (public.is_admin());
+DROP POLICY IF EXISTS "Admins can delete allowed emails" ON public.allowed_emails;
 CREATE POLICY "Admins can delete allowed emails" ON public.allowed_emails FOR DELETE TO authenticated USING (public.is_admin());
 
 DROP POLICY IF EXISTS "Anon can view events" ON public.events;
@@ -72,9 +75,13 @@ DROP POLICY IF EXISTS "Authenticated users can insert events" ON public.events;
 DROP POLICY IF EXISTS "Authenticated users can update events" ON public.events;
 DROP POLICY IF EXISTS "Authenticated users can delete events" ON public.events;
 REVOKE ALL ON public.events FROM anon;
+DROP POLICY IF EXISTS "Admins can select events" ON public.events;
 CREATE POLICY "Admins can select events" ON public.events FOR SELECT TO authenticated USING (public.is_admin());
+DROP POLICY IF EXISTS "Admins can insert events" ON public.events;
 CREATE POLICY "Admins can insert events" ON public.events FOR INSERT TO authenticated WITH CHECK (public.is_admin());
+DROP POLICY IF EXISTS "Admins can update events" ON public.events;
 CREATE POLICY "Admins can update events" ON public.events FOR UPDATE TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
+DROP POLICY IF EXISTS "Admins can delete events" ON public.events;
 CREATE POLICY "Admins can delete events" ON public.events FOR DELETE TO authenticated USING (public.is_admin());
 
 DROP POLICY IF EXISTS "Anon can insert guests" ON public.guests;
@@ -85,18 +92,26 @@ DROP POLICY IF EXISTS "Authenticated users can insert guests" ON public.guests;
 DROP POLICY IF EXISTS "Authenticated users can update guests" ON public.guests;
 DROP POLICY IF EXISTS "Authenticated users can delete guests" ON public.guests;
 REVOKE ALL ON public.guests FROM anon;
+DROP POLICY IF EXISTS "Admins can select guests" ON public.guests;
 CREATE POLICY "Admins can select guests" ON public.guests FOR SELECT TO authenticated USING (public.is_admin());
+DROP POLICY IF EXISTS "Admins can insert guests" ON public.guests;
 CREATE POLICY "Admins can insert guests" ON public.guests FOR INSERT TO authenticated WITH CHECK (public.is_admin());
+DROP POLICY IF EXISTS "Admins can update guests" ON public.guests;
 CREATE POLICY "Admins can update guests" ON public.guests FOR UPDATE TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
+DROP POLICY IF EXISTS "Admins can delete guests" ON public.guests;
 CREATE POLICY "Admins can delete guests" ON public.guests FOR DELETE TO authenticated USING (public.is_admin());
 
 DROP POLICY IF EXISTS "Authenticated users can select payments" ON public.payments;
 DROP POLICY IF EXISTS "Authenticated users can insert payments" ON public.payments;
 DROP POLICY IF EXISTS "Authenticated users can update payments" ON public.payments;
 DROP POLICY IF EXISTS "Authenticated users can delete payments" ON public.payments;
+DROP POLICY IF EXISTS "Admins can select payments" ON public.payments;
 CREATE POLICY "Admins can select payments" ON public.payments FOR SELECT TO authenticated USING (public.is_admin());
+DROP POLICY IF EXISTS "Admins can insert payments" ON public.payments;
 CREATE POLICY "Admins can insert payments" ON public.payments FOR INSERT TO authenticated WITH CHECK (public.is_admin());
+DROP POLICY IF EXISTS "Admins can update payments" ON public.payments;
 CREATE POLICY "Admins can update payments" ON public.payments FOR UPDATE TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
+DROP POLICY IF EXISTS "Admins can delete payments" ON public.payments;
 CREATE POLICY "Admins can delete payments" ON public.payments FOR DELETE TO authenticated USING (public.is_admin());
 
 CREATE OR REPLACE FUNCTION public.get_public_event(_key text)
@@ -209,11 +224,14 @@ GRANT EXECUTE ON FUNCTION public.public_update_guest(uuid, text, integer, text, 
 DROP POLICY IF EXISTS "Authenticated users can upload event assets" ON storage.objects;
 DROP POLICY IF EXISTS "Authenticated users can update event assets" ON storage.objects;
 DROP POLICY IF EXISTS "Authenticated users can delete event assets" ON storage.objects;
+DROP POLICY IF EXISTS "Admins can upload event assets" ON storage.objects;
 CREATE POLICY "Admins can upload event assets" ON storage.objects FOR INSERT TO authenticated
   WITH CHECK (bucket_id = 'event-assets' AND public.is_admin() AND owner_id = (select auth.uid()::text));
+DROP POLICY IF EXISTS "Admins can update own event assets" ON storage.objects;
 CREATE POLICY "Admins can update own event assets" ON storage.objects FOR UPDATE TO authenticated
   USING (bucket_id = 'event-assets' AND public.is_admin() AND owner_id = (select auth.uid()::text))
   WITH CHECK (bucket_id = 'event-assets' AND public.is_admin() AND owner_id = (select auth.uid()::text));
+DROP POLICY IF EXISTS "Admins can delete own event assets" ON storage.objects;
 CREATE POLICY "Admins can delete own event assets" ON storage.objects FOR DELETE TO authenticated
   USING (bucket_id = 'event-assets' AND public.is_admin() AND owner_id = (select auth.uid()::text));
 
@@ -244,6 +262,7 @@ CREATE INDEX IF NOT EXISTS payment_orders_provider_payment_idx ON public.payment
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.payment_orders TO authenticated;
 GRANT ALL ON public.payment_orders TO service_role;
 ALTER TABLE public.payment_orders ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Admins manage payment orders" ON public.payment_orders;
 CREATE POLICY "Admins manage payment orders" ON public.payment_orders
   FOR ALL TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
 
@@ -261,6 +280,7 @@ CREATE TABLE IF NOT EXISTS public.courtesy_codes (
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.courtesy_codes TO authenticated;
 GRANT ALL ON public.courtesy_codes TO service_role;
 ALTER TABLE public.courtesy_codes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Admins manage courtesy codes" ON public.courtesy_codes;
 CREATE POLICY "Admins manage courtesy codes" ON public.courtesy_codes
   FOR ALL TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
 
