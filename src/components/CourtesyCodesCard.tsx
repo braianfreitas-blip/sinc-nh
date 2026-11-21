@@ -41,6 +41,7 @@ export default function CourtesyCodesCard({ eventId }: { eventId: string }) {
   const criar = async () => {
     const code = novo.code.trim().toUpperCase();
     if (!code) { toast.error('Informe o código.'); return; }
+    if (code.length < 10) { toast.error('Use um código com pelo menos 10 caracteres (use "Gerar outro").'); return; }
     if (!(novo.maxUses >= 1)) { toast.error('Quantidade de pessoas inválida.'); return; }
     setSalvando(true);
     const { error } = await supabase.from('courtesy_codes').insert({

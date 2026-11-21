@@ -8,6 +8,13 @@
       "when": 1790032603926,
       "tag": "0000_enable_realtime_guests",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795221801316,
+      "tag": "0001_harden_public_guest_access",
+      "breakpoints": true
     }
   ]
 }

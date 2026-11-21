@@ -12,10 +12,12 @@ import NotFound from '@/pages/NotFound';
 import ContributionCard from '@/components/ContributionCard';
 import GroupRegistrationForm from '@/components/GroupRegistrationForm';
 import GroupStatusPanel from '@/components/GroupStatusPanel';
+import { supabase } from '@/integrations/supabase/client';
+import { mapGuest } from '@/contexts/EventContext';
 import { getEventDays, formatDateRange, formatDayLine, formatHour, hasProgram } from '@/lib/eventDays';
 
 export default function PublicRSVPPage() {
-  const { event, notFound, loading, findGuestByName, addGuest, updateGuest } = useEvent();
+  const { event, notFound, loading, addGuest, updateGuest } = useEvent();
   const navigate = useNavigate();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -23,13 +25,18 @@ export default function PublicRSVPPage() {
   const [phone, setPhone] = useState('');
   const [companions, setCompanions] = useState(0);
   const [invitedBy, setInvitedBy] = useState('');
-  const [found, setFound] = useState<ReturnType<typeof findGuestByName> | null>(null);
+  const [found, setFound] = useState<Guest | null>(null);
   const [searched, setSearched] = useState(false);
   const [mode, setMode] = useState<'confirm' | 'manage'>('confirm');
   const [lookupFirst, setLookupFirst] = useState('');
   const [lookupLast, setLookupLast] = useState('');
-  const [lookupResult, setLookupResult] = useState<ReturnType<typeof findGuestByName> | null>(null);
+  const [lookupResult, setLookupResult] = useState<Guest | null>(null);
   const [lookupSearched, setLookupSearched] = useState(false);
+  const [lookupPhone, setLookupPhone] = useState('');
+  const lookupGuest = async (first: string, last: string, ph: string): Promise<Guest | null> => {
+    const { data } = await supabase.rpc('public_lookup_guest', { _event_id: event.id, _first: first, _last: last, _phone: ph });
+    return data ? mapGuest(data) : null;
+  };
 
   if (loading) return null;
   if (notFound) return <NotFound />;
@@ -43,12 +50,12 @@ export default function PublicRSVPPage() {
   const grupo = event.isPaid && !voluntary;
   const valorFixo = (n: number) => (event.isPaid && !voluntary ? event.ticketPrice * (1 + (event.allowCompanions ? n : 0)) : 0);
 
-  const confirmedCount = event.guests.filter(g => !isNaoInscrito(g) && g.presenceStatus !== 'cancelled').reduce((s, g) => s + 1 + g.companions, 0);
+  const confirmedCount = event.publicOccupied ?? event.guests.filter(g => !isNaoInscrito(g) && g.presenceStatus !== 'cancelled').reduce((s, g) => s + 1 + g.companions, 0);
   const isFull = confirmedCount >= event.maxGuests;
 
   const canCancel = !event.cancellationDeadline || new Date() <= new Date(event.cancellationDeadline + 'T23:59:59');
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!firstName.trim() || !lastName.trim()) {
       toast.error('Informe nome e sobrenome.');
       return;
@@ -64,7 +71,7 @@ export default function PublicRSVPPage() {
         return;
       }
     }
-    const existing = findGuestByName(firstName.trim(), lastName.trim());
+    const existing = await lookupGuest(firstName.trim(), lastName.trim(), phone.trim());
     if (existing) {
       const status = isFull ? 'waitlist' : 'confirmed';
       updateGuest(existing.id, {
@@ -164,12 +171,12 @@ export default function PublicRSVPPage() {
     setSearched(false);
   };
 
-  const handleLookup = () => {
-    if (!lookupFirst.trim() || !lookupLast.trim()) {
-      toast.error('Informe nome e sobrenome.');
+  const handleLookup = async () => {
+    if (!lookupFirst.trim() || !lookupLast.trim() || !lookupPhone.trim()) {
+      toast.error('Informe nome, sobrenome e celular.');
       return;
     }
-    const guest = findGuestByName(lookupFirst.trim(), lookupLast.trim());
+    const guest = await lookupGuest(lookupFirst.trim(), lookupLast.trim(), lookupPhone.trim());
     setLookupResult(guest || null);
     setLookupSearched(true);
   };
@@ -188,6 +195,7 @@ export default function PublicRSVPPage() {
   const resetLookup = () => {
     setLookupFirst('');
     setLookupLast('');
+    setLookupPhone('');
     setLookupResult(null);
     setLookupSearched(false);
   };
@@ -462,12 +470,13 @@ export default function PublicRSVPPage() {
                   <div className="space-y-4">
                     <div><Label>Nome *</Label><Input value={lookupFirst} onChange={e => setLookupFirst(e.target.value)} placeholder="João" /></div>
                     <div><Label>Sobrenome *</Label><Input value={lookupLast} onChange={e => setLookupLast(e.target.value)} placeholder="Silva" /></div>
+                    <div><Label>Celular usado na inscrição *</Label><Input type="tel" value={lookupPhone} onChange={e => setLookupPhone(e.target.value)} placeholder="(11) 91234-5678" /></div>
                     <Button onClick={handleLookup} className="w-full h-12 text-base" style={primaryBtnStyle}>
                       <Search className="w-4 h-4 mr-2" />Buscar
                     </Button>
                   </div>
                   {lookupSearched && !lookupResult && (
-                    <p className="text-sm text-muted-foreground text-center mt-4">Nenhuma confirmação encontrada com esse nome.</p>
+                    <p className="text-sm text-muted-foreground text-center mt-4">Nenhuma confirmação encontrada com esse nome e celular.</p>
                   )}
                 </>
               ) : lookupResult.presenceStatus === 'cancelled' ? (

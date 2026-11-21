@@ -1,3 +1,4 @@
+import { csvCell } from '@/lib/csv';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useEvent } from '@/contexts/EventContext';
@@ -53,7 +54,7 @@ export default function GuestListPage() {
       PAYMENT_LABELS[g.paymentStatus], g.amountDue, g.amountPaid, g.companions,
       g.notes, g.confirmedAt || ''
     ]);
-    const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${c}"`).join(','))].join('\n');
+    const csv = [headers.join(','), ...rows.map(r => r.map(csvCell).join(','))].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

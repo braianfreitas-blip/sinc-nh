@@ -111,6 +111,8 @@ export interface PaymentRecord {
 
 export interface EventData {
   id: string;
+  /** Public page only: seats taken (guest list is not exposed publicly). */
+  publicOccupied?: number;
   slug?: string;
   name: string;
   date: string;

@@ -165,9 +165,8 @@ export function EventProvider({ children, eventId }: { children: React.ReactNode
         const { data: evRow, error: evErr } = await supabase.rpc('get_public_event', { _key: eventId });
         if (evErr || !evRow) throw evErr || new Error('Event not found');
         const eventData = mapEvent(evRow);
-        const { data: gRows } = await supabase.rpc('get_public_guests', { _event_id: (evRow as any).id });
-        const guests = ((gRows as any[]) || []).map(mapGuest);
-        setEvent({ ...eventData, guests, payments: [] });
+        const { data: occ } = await supabase.rpc('get_public_occupancy', { _event_id: (evRow as any).id });
+        setEvent({ ...eventData, guests: [], payments: [], publicOccupied: Number(occ) || 0 });
         return;
       }
 

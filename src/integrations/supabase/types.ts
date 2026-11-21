@@ -359,6 +359,7 @@ export type Database = {
     Functions: {
       get_public_event: { Args: { _key: string }; Returns: Json }
       get_public_guests: { Args: { _event_id: string }; Returns: Json }
+      get_public_occupancy: { Args: { _event_id: string }; Returns: number }
       get_public_ticket: { Args: { _guest_id: string }; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
       is_email_allowed: { Args: { _email: string }; Returns: boolean }
@@ -370,6 +371,15 @@ export type Database = {
           _first: string
           _id: string
           _invited_by: string
+          _last: string
+          _phone: string
+        }
+        Returns: Json
+      }
+      public_lookup_guest: {
+        Args: {
+          _event_id: string
+          _first: string
           _last: string
           _phone: string
         }

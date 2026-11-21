@@ -67,7 +67,7 @@ export const providersConfig = () => call<{ providers: ProviderConfig[] }>({ act
 // Código de cortesia fácil de ditar: sem 0/O, 1/I.
 export function generateCourtesyCode(prefix = 'GRACA') {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  const arr = new Uint32Array(4);
+  const arr = new Uint32Array(10);
   crypto.getRandomValues(arr);
   return `${prefix}-${Array.from(arr, n => chars[n % chars.length]).join('')}`;
 }

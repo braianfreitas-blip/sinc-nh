@@ -1,3 +1,4 @@
+import { csvCell } from '@/lib/csv';
 import { useEvent } from '@/contexts/EventContext';
 import { PAYMENT_METHOD_LABELS, PAYMENT_LABELS, PAYMENT_COLORS } from '@/types/event';
 import { DollarSign, TrendingUp, TrendingDown, ShieldCheck, RotateCcw, Download, HeartHandshake } from 'lucide-react';
@@ -24,7 +25,7 @@ export default function FinancialPage() {
       const g = event.guests.find(g => g.id === p.guestId);
       return [g ? `${g.firstName} ${g.lastName}` : '?', p.amount, PAYMENT_METHOD_LABELS[p.method], p.date, p.notes, p.isManual ? 'Sim' : 'Não'];
     });
-    const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${c}"`).join(','))].join('\n');
+    const csv = [headers.join(','), ...rows.map(r => r.map(csvCell).join(','))].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
