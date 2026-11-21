@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.18"
   }
   public: {
     Tables: {
@@ -69,44 +69,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "courtesy_codes_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "events"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      event_days: {
-        Row: {
-          created_at: string
-          date: string
-          end_time: string | null
-          event_id: string
-          id: string
-          position: number
-          start_time: string
-        }
-        Insert: {
-          created_at?: string
-          date?: string
-          end_time?: string | null
-          event_id: string
-          id?: string
-          position?: number
-          start_time?: string
-        }
-        Update: {
-          created_at?: string
-          date?: string
-          end_time?: string | null
-          event_id?: string
-          id?: string
-          position?: number
-          start_time?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "event_days_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
@@ -206,52 +168,6 @@ export type Database = {
           use_tickets?: boolean
         }
         Relationships: []
-      }
-      guest_checkins: {
-        Row: {
-          checked_in_at: string
-          day_id: string
-          event_id: string
-          guest_id: string
-          id: string
-        }
-        Insert: {
-          checked_in_at?: string
-          day_id: string
-          event_id: string
-          guest_id: string
-          id?: string
-        }
-        Update: {
-          checked_in_at?: string
-          day_id?: string
-          event_id?: string
-          guest_id?: string
-          id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "guest_checkins_day_id_fkey"
-            columns: ["day_id"]
-            isOneToOne: false
-            referencedRelation: "event_days"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "guest_checkins_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "events"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "guest_checkins_guest_id_fkey"
-            columns: ["guest_id"]
-            isOneToOne: false
-            referencedRelation: "guests"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       guests: {
         Row: {
